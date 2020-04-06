@@ -176,8 +176,6 @@ func parseRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDela
 		lowBlkNum = 0
 	}
 
-
-
 	if req.HighBlockUnbounded {
 		if req.Descending {
 			highBlkNum = virtualHead // don't break existing queries

@@ -15,6 +15,7 @@
 package archive
 
 import (
+	"go.uber.org/zap"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -24,6 +25,15 @@ func (p *IndexPool) listAllReadOnlyIndexes() ([]string, map[string]bool, error) 
 	local, err := filepath.Glob(filepath.Join(p.IndexesPath, "??????????.bleve"))
 	if err != nil {
 		return nil, nil, err
+	}
+
+	for _, readOnlyPath := range p.ReadOnlyIndexesPaths {
+		more, err := filepath.Glob(filepath.Join(readOnlyPath, "??????????.bleve"))
+		if err != nil {
+			zlog.Warn("failed listing files in read-only path, continuing", zap.String("path", readOnlyPath), zap.Error(err))
+			continue
+		}
+		local = append(local, more...)
 	}
 
 	// dedupe

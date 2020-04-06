@@ -38,8 +38,9 @@ import (
 )
 
 type IndexPool struct {
-	IndexesPath string //local path where indices are stored on disk
-	ShardSize   uint64
+	ReadOnlyIndexesPaths []string // list of paths where to load on start
+	IndexesPath          string   //local path where indices are stored on disk
+	ShardSize            uint64
 
 	ready bool
 
@@ -61,14 +62,15 @@ type IndexPool struct {
 var numberOfPoolInitWorkers = 16 // During process bootstrap - AVOID too high value - there is contention
 var numberOfAnalysisWorkers = 2  // Only used for indexing and merging (not for read-only)
 
-func NewIndexPool(indexesPath string, shardSize uint64, indexesStore dstore.Store, cache roarcache.Cache, dmeshClient dmeshClient.Client, searchPeer *dmesh.SearchPeer) (*IndexPool, error) {
+func NewIndexPool(indexesPath string, readOnlyIndexesPaths []string, shardSize uint64, indexesStore dstore.Store, cache roarcache.Cache, dmeshClient dmeshClient.Client, searchPeer *dmesh.SearchPeer) (*IndexPool, error) {
 	pool := &IndexPool{
-		IndexesPath:       indexesPath,
-		ShardSize:         shardSize,
-		indexesStore:      indexesStore,
-		emptyResultsCache: cache,
-		dmeshClient:       dmeshClient,
-		SearchPeer:        searchPeer,
+		IndexesPath:          indexesPath,
+		ReadOnlyIndexesPaths: readOnlyIndexesPaths,
+		ShardSize:            shardSize,
+		indexesStore:         indexesStore,
+		emptyResultsCache:    cache,
+		dmeshClient:          dmeshClient,
+		SearchPeer:           searchPeer,
 	}
 	return pool, nil
 }
@@ -548,6 +550,12 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 
 func (p *IndexPool) getReadOnlyIndexFilePath(baseBlockNum uint64) string {
 	basePath := fmt.Sprintf("%010d.bleve", baseBlockNum)
+	for _, path := range p.ReadOnlyIndexesPaths {
+		fullPath := filepath.Join(path, basePath)
+		if _, err := os.Stat(fullPath); !os.IsNotExist(err) {
+			return fullPath
+		}
+	}
 	return filepath.Join(p.IndexesPath, basePath)
 }
 

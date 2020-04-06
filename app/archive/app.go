@@ -45,6 +45,7 @@ type Config struct {
 	EnableMovingTail        bool          // Enable moving t`ail, requires a relative --start-block (negative number)
 	IndexesStoreURL         string        // location of indexes to download/open/serve
 	IndexesPath             string        // location where to store the downloaded index files
+	ReadOnlyIndexesPaths    []string      // list of paths where to load indexes on start
 	ShardSize               uint64        // indexes shard size
 	StartBlock              int64         // Start at given block num, the initial sync and polling
 	StopBlock               uint64        // Stop before given block num, the initial sync and polling
@@ -137,6 +138,7 @@ func (a *App) Run() error {
 	zlog.Info("setting up scorch index pool")
 	indexPool, err := archive.NewIndexPool(
 		a.config.IndexesPath,
+		a.config.ReadOnlyIndexesPaths,
 		a.config.ShardSize,
 		indexesStore,
 		cache,

@@ -56,7 +56,7 @@ func TestCursorPasses(t *testing.T) {
 			expectPass: true,
 		},
 		{
-			name: "back, no cursor, with block only and trx prefix",
+			name:       "back, no cursor, with block only and trx prefix",
 			cursorGate: NewCursorGate(nil, true),
 			trxBlock:   5,
 			trxIndex:   "trx2",
