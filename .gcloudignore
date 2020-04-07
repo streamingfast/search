@@ -1,0 +1,7 @@
+data
+.idea
+vendor
+data/
+testdata/60M-mainnet-index
+.git/
+testindexer/

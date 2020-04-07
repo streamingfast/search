@@ -1,0 +1,11 @@
+.envrc
+.idea
+vendor
+/data
+/sqe
+/search
+
+/testindexer/dfuse.bleve
+/testindexer/imports.jsonl
+*.orig
+.DS_Store
