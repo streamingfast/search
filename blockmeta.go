@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"time"
 
-	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	"github.com/dfuse-io/bstream"
+	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	"go.uber.org/zap"
 )
 
@@ -31,22 +31,23 @@ func GetIrreversibleBlock(blockmetaCli pbblockmeta.BlockIDClient, blockNum uint6
 		return bstream.NewBlockRef("0000000000000000000000000000000000000000000000000000000000000000", 0), nil
 	}
 
+	started := time.Now()
 	tried := 0
 	for {
 		idResp, err := blockmetaCli.NumToID(ctx, &pbblockmeta.NumToIDRequest{BlockNum: blockNum})
-		if err != nil {
-			return nil, err
-		}
-
-		if idResp.Irreversible {
+		if err == nil && idResp.Irreversible {
 			return bstream.NewBlockRef(idResp.Id, blockNum), nil
 		}
 
 		tried++
 		if retries != -1 && tried > retries {
-			zlog.Info("could not get irreversible block after retrying", zap.Int("retries", retries), zap.Uint64("blocknum", blockNum))
+			zlog.Info("could not get irreversible block after retrying", zap.Int("retries", retries), zap.Uint64("blocknum", blockNum), zap.Error(err))
 			return nil, fmt.Errorf("cannot retrieve irreversible block")
 		}
+		if tried%30 == 0 {
+			zlog.Warn("still trying to fetch irreversible block from blockmeta", zap.Duration("since", time.Since(started)), zap.Error(err), zap.Uint64("block_num", blockNum), zap.Int("retries", retries))
+		}
+
 		time.Sleep(time.Second)
 	}
 }
