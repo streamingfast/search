@@ -13,21 +13,18 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/dfuse-io/bstream v0.0.0-20200407175946-02835b21c627
+	github.com/dfuse-io/bstream v0.0.0-20200406220134-fe85c256872f
 	github.com/dfuse-io/derr v0.0.0-20200406214256-c690655246a1
 	github.com/dfuse-io/dgrpc v0.0.0-20200406214416-6271093e544c
 	github.com/dfuse-io/dmesh v0.0.0-20200407045015-ea4e41ecdb6c
 	github.com/dfuse-io/dmetrics v0.0.0-20200406214800-499fc7b320ab
-	github.com/dfuse-io/dstore v0.0.0-20200407173215-10b5ced43022
+	github.com/dfuse-io/dstore v0.0.0-20200406215240-59d41b073a35
 	github.com/dfuse-io/dtracing v0.0.0-20200406213603-4b0c0063b125
 	github.com/dfuse-io/jsonpb v0.0.0-20200406211248-c5cf83f0e0c0
-	github.com/dfuse-io/logging v0.0.0-20200407175011-14021b7a79af
-	github.com/dfuse-io/pbgo v0.0.6-0.20200407175820-b82ffcb63bf6
+	github.com/dfuse-io/logging v0.0.0-20200406213449-45fc25dc6a8d
+	github.com/dfuse-io/pbgo v0.0.6-0.20200325181437-64bdab32d1b7
 	github.com/dfuse-io/shutter v1.4.1-0.20200319040708-c809eec458e6
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
-	github.com/eoscanada/bstream v1.7.0 // indirect
-	github.com/eoscanada/dgrpc v0.1.1-0.20200227212232-2c21448a17d0 // indirect
-	github.com/eoscanada/dstore v1.0.3 // indirect
 	github.com/eoscanada/eos-go v0.9.1-0.20200227221642-1b19518201a1
 	github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51 // indirect
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect

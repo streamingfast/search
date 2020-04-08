@@ -19,10 +19,10 @@ import (
 	"testing"
 
 	//_ "github.com/dfuse-io/bstream/codecs/deos"
-	"github.com/dfuse-io/dmesh"
-	"github.com/dfuse-io/dstore"
 	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	"github.com/dfuse-io/dmesh"
+	"github.com/dfuse-io/dstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +30,7 @@ import (
 func Test_FetchMatchingBlocks(t *testing.T) {
 	t.Skip() // requires real blockstore connection
 
-	blocksStoreURL := "gs://example/blocks"
+	blocksStoreURL := "gs://dfuseio-global-blocks-us/eos-mainnet/v3"
 
 	store, err := dstore.NewDBinStore(blocksStoreURL)
 	require.NoError(t, err)

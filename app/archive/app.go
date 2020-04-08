@@ -40,7 +40,6 @@ import (
 type Config struct {
 	// dmesh configuration
 	Dmesh            dmeshClient.SearchClient
-	Cache            roarcache.Cache
 	Protocol         pbbstream.Protocol
 	ServiceVersion   string        // dmesh service version (v1)
 	TierLevel        uint32        // level of the search tier
@@ -60,7 +59,8 @@ type Config struct {
 	IndexPolling     bool          // Populate local indexes using indexes store polling.
 	WarmupFilepath   string        // Optional filename containing queries to warm-up the search
 	ShutdownDelay    time.Duration //On shutdown, time to wait before actually leaving, to try and drain connections
-
+	EnableEmptyResultsCache bool // Enable roaring-bitmap-based empty results caching
+	MemcacheAddr string // Empty results cache's memcache server address
 	EnableReadinessProbe bool // Creates a health check probe
 }
 type App struct {
@@ -78,6 +78,13 @@ func New(config *Config) *App {
 
 func (a *App) Run() error {
 	zlog.Info("running archive app ", zap.Reflect("config", a.config))
+
+	var cache roarcache.Cache
+	if a.config.EnableEmptyResultsCache {
+		zlog.Info("setting up roar cache")
+		cache = roarcache.NewMemcache(a.config.MemcacheAddr, 30*24*time.Hour, a.config.ShardSize)
+	}
+
 
 	zlog.Info("initializing indexed fields cache")
 	bstream.MustDoForProtocol(a.config.Protocol, map[pbbstream.Protocol]func(){
@@ -122,7 +129,7 @@ func (a *App) Run() error {
 		a.config.IndexesPath,
 		a.config.ShardSize,
 		indexesStore,
-		a.config.Cache,
+		cache,
 		a.config.Dmesh,
 		searchPeer,
 	)

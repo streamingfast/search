@@ -26,8 +26,8 @@ go build -o sqe ./cmd/search && \
     --protocol=EOS \
     --blockmeta-addr=:9001 \
     --block-stream-addr=:9001 \
-    --blocks-store=gs://example/blocks \
-    --indexes-store=gs://example/indexes \
+    --blocks-store=gs://dfuseio-global-blocks-us/eos-dev1/v3 \
+    --indexes-store=gs://dfuseio-global-indices-us/eos-dev1/v2-0 \
     --dfuse-hooks-action-name=dfuseiohooks:event \
     --dl-threads=2 \
     --max-query-threads=12 \
@@ -46,7 +46,7 @@ go build -o sqe ./cmd/search && \
 ./sqe serve-live \
   --listen-addr=:9000 \
   --block-stream-addr=:9001 \
-  --blocks-store=gs://example/blocks \
+  --blocks-store=gs://dfuseio-global-blocks-us/eos-dev1/v3 \
   --protocol=EOS \
   --truncation-threshold=2
 ```

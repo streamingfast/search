@@ -17,6 +17,7 @@ package live
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/dfuse-io/bstream"
@@ -74,6 +75,13 @@ func New(config *Config) *App {
 }
 func (a *App) Run() error {
 	zlog.Info("running live app ", zap.Reflect("config", a.config))
+
+
+	zlog.Info("clearing working directory", zap.Reflect("working_directory", a.config.LiveIndexesPath))
+	err := os.RemoveAll(a.config.LiveIndexesPath)
+	if err != nil {
+		return fmt.Errorf("unable to clear working directory: %w", err)
+	}
 
 	blocksStore, err := dstore.NewDBinStore(a.config.BlocksStoreURL)
 	if err != nil {
