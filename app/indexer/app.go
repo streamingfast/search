@@ -35,7 +35,7 @@ import (
 type Config struct {
 	HTTPListenAddr                      string // path for http healthcheck
 	GRPCListenAddr                      string // path for gRPC healthcheck
-	IndexesStoreURL                     string // Path to upload the wirtten index shards
+	IndicesStoreURL                     string // Path to upload the wirtten index shards
 	BlocksStoreURL                      string // Path to read blocks archives
 	Protocol                            pbbstream.Protocol
 	BlockstreamAddr                     string // gRPC URL to reach a stream of blocks
@@ -73,7 +73,7 @@ func New(config *Config) *App {
 func (a *App) Run() error {
 	zlog.Info("running indexer app ", zap.Reflect("config", a.config))
 
-	indexesStore, err := dstore.NewStore(a.config.IndexesStoreURL, "", "zstd", true)
+	indexesStore, err := dstore.NewStore(a.config.IndicesStoreURL, "", "zstd", true)
 	if err != nil {
 		return fmt.Errorf("failed setting up indexes store: %w", err)
 	}
