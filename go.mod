@@ -18,7 +18,7 @@ require (
 	github.com/dfuse-io/dgrpc v0.0.0-20200406214416-6271093e544c
 	github.com/dfuse-io/dmesh v0.0.0-20200407045015-ea4e41ecdb6c
 	github.com/dfuse-io/dmetrics v0.0.0-20200406214800-499fc7b320ab
-	github.com/dfuse-io/dstore v0.0.0-20200406215240-59d41b073a35
+	github.com/dfuse-io/dstore v0.0.0-20200407173215-10b5ced43022
 	github.com/dfuse-io/dtracing v0.0.0-20200406213603-4b0c0063b125
 	github.com/dfuse-io/jsonpb v0.0.0-20200406211248-c5cf83f0e0c0
 	github.com/dfuse-io/logging v0.0.0-20200406213449-45fc25dc6a8d
