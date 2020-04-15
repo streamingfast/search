@@ -19,21 +19,19 @@ import (
 	"fmt"
 	"time"
 
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
-	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/shutter"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
+	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/forkresolver"
+	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
 )
 
 type Config struct {
 	Dmesh                    dmeshClient.SearchClient
-	Protocol                 pbbstream.Protocol
 	ServiceVersion           string        // dmesh service version (v1)
 	GRPCListenAddr           string        // Address to listen for incoming gRPC requests
 	HttpListenAddr           string        // Address to listen for incoming http requests
@@ -45,13 +43,18 @@ type Config struct {
 	EnableReadinessProbe     bool          // Creates a health check probe
 }
 
+type Modules struct {
+	BlockMapper search.BlockMapper
+}
+
 type App struct {
 	*shutter.Shutter
 	config         *Config
+	modules        *Modules
 	readinessProbe pbhealth.HealthClient
 }
 
-func New(config *Config) *App {
+func New(config *Config, modules *Modules) *App {
 	return &App{
 		Shutter: shutter.New(),
 		config:  config,
@@ -75,23 +78,13 @@ func (a *App) Run() error {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}
 
-	restrictions, err := search.ParseRestrictionsJSON(a.config.IndexingRestrictionsJSON)
-	if err != nil {
-		return fmt.Errorf("failed parsing restrictions JSON")
-	}
-	if len(restrictions) > 0 {
-		zlog.Info("Applying restrictions on indexing", zap.Reflect("restrictions", restrictions))
-	}
-
 	fr := forkresolver.NewForkResolver(
 		blocksStore,
 		a.config.Dmesh,
 		searchPeer,
-		a.config.Protocol,
-		a.config.DfuseHooksActionName,
 		a.config.GRPCListenAddr,
 		a.config.HttpListenAddr,
-		restrictions,
+		a.modules.BlockMapper,
 		a.config.IndicesPath)
 
 	if a.config.EnableReadinessProbe {

@@ -52,16 +52,16 @@ func (p *IndexPool) GetIndexIterator(lowBlockNum, highBlockNum uint64, sortDesc 
 	p.readPoolLock.RLock()
 	defer p.readPoolLock.RUnlock()
 
-	if lowBlockNum < p.lowestServeableBlockNum {
-		return nil, fmt.Errorf("range of query out of bounds: requested low: %d, start block from this archive: %d", lowBlockNum, p.lowestServeableBlockNum)
+	if lowBlockNum < p.LowestServeableBlockNum {
+		return nil, fmt.Errorf("range of query out of bounds: requested low: %d, start block from this archive: %d", lowBlockNum, p.LowestServeableBlockNum)
 	}
 
 	it := &indexIterator{
 		pool:               p,
 		sortDesc:           sortDesc,
 		shardSize:          p.ShardSize,
-		readPoolStartBlock: p.lowestServeableBlockNum,
-		readPoolSnapshot:   p.readPool,
+		readPoolStartBlock: p.LowestServeableBlockNum,
+		readPoolSnapshot:   p.ReadPool,
 		roarCache:          p.emptyResultsCache,
 	}
 
@@ -205,8 +205,8 @@ func (it *indexIterator) current(currentBlock uint64) (idx *search.ShardIndex, r
 
 	// Try to see if the real-time readPool has been updated in the mean time.
 	p.readPoolLock.RLock()
-	if len(p.readPool) > int(readonlySliceIndex) {
-		idx = p.readPool[readonlySliceIndex]
+	if len(p.ReadPool) > int(readonlySliceIndex) {
+		idx = p.ReadPool[readonlySliceIndex]
 	}
 	p.readPoolLock.RUnlock()
 

@@ -60,8 +60,8 @@ func (b *ArchiveBackend) newArchiveQuery(
 	return &archiveQuery{
 		parentCtx: ctx,
 
-		pool:            b.pool,
-		maxQueryThreads: b.maxQueryThreads,
+		pool:            b.Pool,
+		maxQueryThreads: b.MaxQueryThreads,
 		matchCollector:  b.matchCollector,
 
 		LastBlockRead: &atomic.Uint64{},

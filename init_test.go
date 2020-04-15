@@ -15,10 +15,8 @@
 package search
 
 import (
-	"context"
 	"os"
 
-	"go.opencensus.io/trace"
 	"go.uber.org/zap"
 )
 
@@ -26,12 +24,4 @@ func init() {
 	if os.Getenv("DEBUG") != "" {
 		zlog, _ = zap.NewDevelopment()
 	}
-}
-
-func testContext() context.Context {
-	traceID := fixedTraceID("00000000000000000000000000000001")
-	spanContext := trace.SpanContext{TraceID: traceID}
-	ctx, _ := trace.StartSpanWithRemoteParent(context.Background(), "test", spanContext)
-
-	return ctx
 }

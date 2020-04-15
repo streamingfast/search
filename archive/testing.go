@@ -16,23 +16,27 @@ package archive
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"testing"
 	"time"
 
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/dfuse-io/search"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func newTestClient(t *testing.T, searchEngine *ArchiveBackend, protocol pbbstream.Protocol) (pb.BackendClient, func()) {
+func TestNewClient(t *testing.T, searchEngine *ArchiveBackend) (pb.BackendClient, func()) {
 	t.Helper()
 
-	searchEngine.protocol = protocol
-	searchEngine.matchCollector = search.MatchCollectorByType[protocol]
+	matchCollector := search.GetMatchCollector
+	if matchCollector == nil {
+		panic(fmt.Errorf("no match collector set, should not happen, you should define a collector"))
+	}
+
+	searchEngine.matchCollector = matchCollector
 	lis := bufconn.Listen(1024 * 1024)
 	s := grpc.NewServer()
 	pb.RegisterBackendServer(s, searchEngine)

@@ -57,7 +57,7 @@ func Test_nextReadOnlyIndexBlock(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			pool := &IndexPool{readPool: test.readPool, ShardSize: test.shardSize}
+			pool := &IndexPool{ReadPool: test.readPool, ShardSize: test.shardSize}
 			assert.Equal(t, test.expectedStartBlock, pool.nextReadOnlyIndexBlock())
 		})
 	}
@@ -99,8 +99,8 @@ func TestIndexPool_getLowestThresholdBlock(t *testing.T) {
 				lowestServeableBlockNum = test.readPool[0].StartBlock
 			}
 			indexPool := &IndexPool{
-				lowestServeableBlockNum: lowestServeableBlockNum,
-				readPool:                test.readPool,
+				LowestServeableBlockNum: lowestServeableBlockNum,
+				ReadPool:                test.readPool,
 			}
 			assert.Equal(t, test.expectedValue, indexPool.LowestServeableBlockNumAbove(test.blockNum))
 		})

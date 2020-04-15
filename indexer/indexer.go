@@ -21,17 +21,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dfuse-io/shutter"
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/bstream/blockstream"
 	"github.com/dfuse-io/bstream/forkable"
 	"github.com/dfuse-io/dstore"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/metrics"
+	"github.com/dfuse-io/shutter"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
-
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 )
 
 // we need to be able to launch it with Start and Stop Block
@@ -39,7 +37,6 @@ import (
 
 type Indexer struct {
 	*shutter.Shutter
-	protocol pbbstream.Protocol
 
 	httpListenAddr string
 	grpcListenAddr string
@@ -51,10 +48,11 @@ type Indexer struct {
 	pipeline *Pipeline
 	source   bstream.Source
 
-	indexesStore         dstore.Store
-	blocksStore          dstore.Store
-	blockstreamAddr      string
-	indexingRestrictions []*search.Restriction
+	indexesStore    dstore.Store
+	blocksStore     dstore.Store
+	blockstreamAddr string
+	blockMapper     search.BlockMapper
+
 	dfuseHooksActionName string
 	writePath            string
 	Verbose              bool
@@ -71,12 +69,10 @@ type Indexer struct {
 }
 
 func NewIndexer(
-	protocol pbbstream.Protocol,
 	indexesStore dstore.Store,
 	blocksStore dstore.Store,
 	blockstreamAddr string,
-	dfuseHooksActionName string,
-	indexingRestrictions []*search.Restriction,
+	blockMapper search.BlockMapper,
 	writePath string,
 	shardSize uint64,
 	httpListenAddr string,
@@ -84,18 +80,16 @@ func NewIndexer(
 
 ) *Indexer {
 	indexer := &Indexer{
-		Shutter:              shutter.New(),
-		shuttingDown:         atomic.NewBool(false),
-		protocol:             protocol,
-		indexesStore:         indexesStore,
-		blocksStore:          blocksStore,
-		blockstreamAddr:      blockstreamAddr,
-		dfuseHooksActionName: dfuseHooksActionName,
-		indexingRestrictions: indexingRestrictions,
-		shardSize:            shardSize,
-		writePath:            writePath,
-		httpListenAddr:       httpListenAddr,
-		grpcListenAddr:       grpcListenAddr,
+		Shutter:         shutter.New(),
+		shuttingDown:    atomic.NewBool(false),
+		indexesStore:    indexesStore,
+		blocksStore:     blocksStore,
+		blockstreamAddr: blockstreamAddr,
+		blockMapper:     blockMapper,
+		shardSize:       shardSize,
+		writePath:       writePath,
+		httpListenAddr:  httpListenAddr,
+		grpcListenAddr:  grpcListenAddr,
 	}
 
 	return indexer
@@ -119,8 +113,7 @@ func (i *Indexer) Bootstrap(startBlockNum uint64) error {
 }
 
 func (i *Indexer) BuildLivePipeline(lastProcessedBlock bstream.BlockRef, enableUpload bool, deleteAfterUpload bool) {
-	blockMapper := search.MustGetBlockMapper(i.protocol, i.dfuseHooksActionName, i.indexingRestrictions)
-	pipe := i.newPipeline(blockMapper, enableUpload, deleteAfterUpload)
+	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
 
 	sf := bstream.SourceFromRefFactory(func(startBlockRef bstream.BlockRef, h bstream.Handler) bstream.Source {
 		pipe.SetCatchUpMode()
@@ -150,7 +143,6 @@ func (i *Indexer) BuildLivePipeline(lastProcessedBlock bstream.BlockRef, enableU
 
 		fileSourceFactory := bstream.SourceFactory(func(subHandler bstream.Handler) bstream.Source {
 			fs := bstream.NewFileSource(
-				i.protocol,
 				i.blocksStore,
 				startBlockRef.Num(),
 				2,   // always 2 download threads, ever
@@ -166,8 +158,9 @@ func (i *Indexer) BuildLivePipeline(lastProcessedBlock bstream.BlockRef, enableU
 		options := []bstream.JoiningSourceOption{
 			bstream.JoiningSourceTargetBlockID(startBlockRef.ID()),
 		}
-		if i.protocol == pbbstream.Protocol_EOS {
-			options = append(options, bstream.JoiningSourceTargetBlockNum(2))
+		protocolFirstBlock := bstream.GetProtocolFirstBlock
+		if protocolFirstBlock > 0 {
+			options = append(options, bstream.JoiningSourceTargetBlockNum(bstream.GetProtocolFirstBlock))
 		}
 		js := bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, gate, options...)
 
@@ -185,8 +178,7 @@ func (i *Indexer) BuildLivePipeline(lastProcessedBlock bstream.BlockRef, enableU
 }
 
 func (i *Indexer) BuildBatchPipeline(lastProcessedBlock bstream.BlockRef, startBlockNum uint64, numberOfBlocksToFetchBeforeStarting uint64, enableUpload bool, deleteAfterUpload bool) {
-	blockMapper := search.MustGetBlockMapper(i.protocol, i.dfuseHooksActionName, i.indexingRestrictions)
-	pipe := i.newPipeline(blockMapper, enableUpload, deleteAfterUpload)
+	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
 
 	gate := bstream.NewBlockNumGate(startBlockNum, bstream.GateInclusive, pipe)
 	gate.MaxHoldOff = 1000
@@ -199,7 +191,6 @@ func (i *Indexer) BuildBatchPipeline(lastProcessedBlock bstream.BlockRef, startB
 	}
 
 	fs := bstream.NewFileSource(
-		i.protocol,
 		i.blocksStore,
 		getBlocksFrom,
 		2,

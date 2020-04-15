@@ -91,7 +91,7 @@ func TestIterator(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pool := &IndexPool{
-				readPool:  test.readPool,
+				ReadPool:  test.readPool,
 				ShardSize: 10,
 			}
 
@@ -116,7 +116,7 @@ func TestIterator(t *testing.T) {
 
 func TestGetIterator(t *testing.T) {
 	p := &IndexPool{
-		lowestServeableBlockNum: 10000,
+		LowestServeableBlockNum: 10000,
 	}
 	_, err := p.GetIndexIterator(5000, 0, false)
 	assert.Error(t, err)

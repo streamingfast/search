@@ -43,9 +43,9 @@ import (
 // 	blocks []*indexedBlock
 // }
 
-type indexedBlock struct {
-	idx *search.SingleIndex
-	blk *bstream.Block
+type IndexedBlock struct {
+	Idx *search.SingleIndex
+	Blk *bstream.Block
 }
 
 // func (q *liveQuery) newBackwardLiveQuery(
@@ -59,15 +59,15 @@ type indexedBlock struct {
 // 		lowBlockNum:   lowBlockNum,
 // 	}
 // }
-func (q *liveQuery) processBlocks(backwardBlocks []*indexedBlock) (err error) {
+func (q *LiveQuery) processBlocks(backwardBlocks []*IndexedBlock) (err error) {
 	// Flip block direction, and pipe the refs
 	for i := len(backwardBlocks) - 1; i >= 0; i-- {
 		idxBlk := backwardBlocks[i]
-		if idxBlk.blk.Num() < q.request.LowBlockNum || idxBlk.blk.Num() > q.request.HighBlockNum {
-			zlog.Warn("curiously going over a block out of request bounds", zap.Uint64("idx_blk_num", idxBlk.blk.Num()))
+		if idxBlk.Blk.Num() < q.Request.LowBlockNum || idxBlk.Blk.Num() > q.Request.HighBlockNum {
+			zlog.Warn("curiously going over a block out of request bounds", zap.Uint64("idx_blk_num", idxBlk.Blk.Num()))
 			continue
 		}
-		err = q.processSingleBlocks(q.ctx, idxBlk, q.matchCollector, q.incomingMatches)
+		err = q.ProcessSingleBlocks(q.Ctx, idxBlk, q.MatchCollector, q.IncomingMatches)
 		if err != nil {
 			return err
 		}
@@ -75,12 +75,12 @@ func (q *liveQuery) processBlocks(backwardBlocks []*indexedBlock) (err error) {
 	return nil
 
 }
-func (q *liveQuery) processSingleBlocks(ctx context.Context, indexedBlock *indexedBlock, matchCollector search.MatchCollector, incomingMatches chan *pb.SearchMatch) (err error) {
+func (q *LiveQuery) ProcessSingleBlocks(ctx context.Context, indexedBlock *IndexedBlock, matchCollector search.MatchCollector, incomingMatches chan *pb.SearchMatch) (err error) {
 	// Flip block direction, and pipe the refs
-	idx := indexedBlock.idx
-	blk := indexedBlock.blk
+	idx := indexedBlock.Idx
+	blk := indexedBlock.Blk
 
-	matches, err := search.RunSingleIndexQuery(ctx, true, 0, math.MaxUint32, matchCollector, q.bleveQuery, idx.Index, func() {}, nil)
+	matches, err := search.RunSingleIndexQuery(ctx, true, 0, math.MaxUint32, matchCollector, q.BleveQuery, idx.Index, func() {}, nil)
 	if err != nil {
 		if err == context.Canceled {
 			return derr.Status(codes.Canceled, "context canceled")
@@ -88,7 +88,7 @@ func (q *liveQuery) processSingleBlocks(ctx context.Context, indexedBlock *index
 		return fmt.Errorf("running single query: %s", err)
 	}
 
-	q.lastBlockRead = blk.Num()
+	q.LastBlockRead = blk.Num()
 
 	for _, match := range matches {
 		matchProto, err := liveSearchMatchToProto(blk, blk.LIBNum(), false, match)
@@ -111,7 +111,7 @@ func (q *liveQuery) processSingleBlocks(ctx context.Context, indexedBlock *index
 
 }
 
-func (q *liveQuery) runBackwardQuery(firstBlockRef bstream.BlockRef) (err error) {
+func (q *LiveQuery) runBackwardQuery(firstBlockRef bstream.BlockRef) (err error) {
 
 	handler := q.setupBackwardPipeline(firstBlockRef)
 
@@ -130,14 +130,14 @@ func (q *liveQuery) runBackwardQuery(firstBlockRef bstream.BlockRef) (err error)
 	// TODO remove this debugging computation
 	var backBlockNums []uint64
 	for _, blk := range q.backwardBlocks {
-		backBlockNums = append(backBlockNums, blk.blk.Num())
+		backBlockNums = append(backBlockNums, blk.Blk.Num())
 	}
-	zlog.Debug("blocks found after running backward query", zap.Uint64("req_high_block_num", q.request.HighBlockNum), zap.Uint64("req_low_block_num", q.request.LowBlockNum), zap.Any("backward_block_nums", backBlockNums))
+	zlog.Debug("blocks found after running backward query", zap.Uint64("req_high_block_num", q.Request.HighBlockNum), zap.Uint64("req_low_block_num", q.Request.LowBlockNum), zap.Any("backward_block_nums", backBlockNums))
 
 	return q.processBlocks(q.backwardBlocks)
 }
 
-func (q *liveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forkable.Forkable {
+func (q *LiveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forkable.Forkable {
 	handler := bstream.HandlerFunc(func(blk *bstream.Block, obj interface{}) error {
 		if q.isAggregatorDone() {
 			return derr.Status(codes.Canceled, "context canceled")
@@ -159,18 +159,18 @@ func (q *liveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forka
 
 		idx := fObj.Obj.(*search.SingleIndex)
 
-		q.backwardBlocks = append(q.backwardBlocks, &indexedBlock{
-			blk: blk,
-			idx: idx,
+		q.backwardBlocks = append(q.backwardBlocks, &IndexedBlock{
+			Blk: blk,
+			Idx: idx,
 		})
-		if blk.Num() >= q.request.HighBlockNum {
+		if blk.Num() >= q.Request.HighBlockNum {
 			return search.ErrEndOfRange
 		}
 
 		return nil
 	})
 
-	postForkGate := bstream.NewBlockNumGate(q.request.LowBlockNum, bstream.GateInclusive, handler)
+	postForkGate := bstream.NewBlockNumGate(q.Request.LowBlockNum, bstream.GateInclusive, handler)
 
 	if firstBlockRef.ID() == "" {
 		zlog.Warn("firstBlockRef ID not set")
@@ -182,7 +182,7 @@ func (q *liveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forka
 		forkable.WithFilters(forkable.StepNew | forkable.StepUndo),
 	}
 
-	if q.request.NavigateFromBlockID != "" {
+	if q.Request.NavigateFromBlockID != "" {
 		// TODO: WARN: if we set this (as we are navigating forks), it
 		// means WE POSSIBLY CAN RECEIVE BLOCKS WITH A LOWER BLOCK NUM
 		// than our lower boundary, especially since the effect of a
@@ -197,7 +197,7 @@ func (q *liveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forka
 		// that that particular block had a match, which we should
 		// also have in this situation, therefore tripping the
 		// `blockNumGate`.
-		options = append(options, forkable.EnsureBlockFlows(bstream.NewBlockRef(q.request.NavigateFromBlockID, q.request.NavigateFromBlockNum)))
+		options = append(options, forkable.EnsureBlockFlows(bstream.NewBlockRef(q.Request.NavigateFromBlockID, q.Request.NavigateFromBlockNum)))
 	}
 	forkableHandler := forkable.New(postForkGate, options...)
 

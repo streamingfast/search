@@ -24,7 +24,6 @@ import (
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/mapping"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	"github.com/dfuse-io/bstream"
 )
 
@@ -71,20 +70,6 @@ func trimZeroPrefix(in string) string {
 	return out
 }
 
-// FIXME: This sucks a little bit because we need to pass the set of parameters that is the
-//        union of all block mapper constructor parameters for all supported protocol type.
-//        Not a too big deal now, since there is only one total, if this grows too much, refactoring
-//        would make sense.
-func MustGetBlockMapper(protocol pbbstream.Protocol, hooksActionName string, restrictions []*Restriction) BlockMapper {
-	var mapper BlockMapper
-	bstream.MustDoForProtocol(protocol, map[pbbstream.Protocol]func(){
-		pbbstream.Protocol_EOS: func() { mapper = NewEOSBlockMapper(hooksActionName, restrictions) },
-		// pbbstream.Protocol_ETH: func() { mapper = NewETHBlockMapper() },
-	})
-
-	return mapper
-}
-
 func fromHexUint16(input string) (uint16, error) {
 	val, err := strconv.ParseUint(input, 16, 16)
 	if err != nil {
@@ -102,39 +87,39 @@ func fromHexUint32(input string) (uint32, error) {
 }
 
 // General purpose mappers
-var disabledMapping *mapping.DocumentMapping
-var txtFieldMapping *mapping.FieldMapping
-var boolFieldMapping *mapping.FieldMapping
-var sortableNumericFieldMapping *mapping.FieldMapping
-var dynamicNestedDocMapping *mapping.DocumentMapping
+var DisabledMapping *mapping.DocumentMapping
+var TxtFieldMapping *mapping.FieldMapping
+var BoolFieldMapping *mapping.FieldMapping
+var SortableNumericFieldMapping *mapping.FieldMapping
+var DynamicNestedDocMapping *mapping.DocumentMapping
 
 func init() {
-	disabledMapping = bleve.NewDocumentDisabledMapping()
+	DisabledMapping = bleve.NewDocumentDisabledMapping()
 
-	sortableNumericFieldMapping = bleve.NewNumericFieldMapping()
-	sortableNumericFieldMapping.Index = true
-	sortableNumericFieldMapping.Store = false
-	sortableNumericFieldMapping.IncludeInAll = false
-	sortableNumericFieldMapping.DocValues = true // required for sorting on that field
+	SortableNumericFieldMapping = bleve.NewNumericFieldMapping()
+	SortableNumericFieldMapping.Index = true
+	SortableNumericFieldMapping.Store = false
+	SortableNumericFieldMapping.IncludeInAll = false
+	SortableNumericFieldMapping.DocValues = true // required for sorting on that field
 
-	boolFieldMapping = bleve.NewBooleanFieldMapping()
-	boolFieldMapping.Index = true               // index this field
-	boolFieldMapping.Store = false              // save space, do not store value
-	boolFieldMapping.DocValues = false          // save space, cannot sort or build facet on this field
-	boolFieldMapping.Analyzer = keyword.Name    // ensure keyword analyzer
-	boolFieldMapping.IncludeInAll = false       // you have _all field disabled
-	boolFieldMapping.IncludeTermVectors = false // save space, cannot do phrase search or result highlighting
+	BoolFieldMapping = bleve.NewBooleanFieldMapping()
+	BoolFieldMapping.Index = true               // index this field
+	BoolFieldMapping.Store = false              // save space, do not store value
+	BoolFieldMapping.DocValues = false          // save space, cannot sort or build facet on this field
+	BoolFieldMapping.Analyzer = keyword.Name    // ensure keyword analyzer
+	BoolFieldMapping.IncludeInAll = false       // you have _all field disabled
+	BoolFieldMapping.IncludeTermVectors = false // save space, cannot do phrase search or result highlighting
 
-	txtFieldMapping = bleve.NewTextFieldMapping()
-	txtFieldMapping.Index = true               // index this field
-	txtFieldMapping.Store = false              // save space, do not store value
-	txtFieldMapping.DocValues = false          // save space, cannot sort or build facet on this field
-	txtFieldMapping.Analyzer = keyword.Name    // ensure keyword analyzer
-	txtFieldMapping.IncludeInAll = false       // you have _all field disabled
-	txtFieldMapping.IncludeTermVectors = false // save space, cannot do phrase search or result highlighting
+	TxtFieldMapping = bleve.NewTextFieldMapping()
+	TxtFieldMapping.Index = true               // index this field
+	TxtFieldMapping.Store = false              // save space, do not store value
+	TxtFieldMapping.DocValues = false          // save space, cannot sort or build facet on this field
+	TxtFieldMapping.Analyzer = keyword.Name    // ensure keyword analyzer
+	TxtFieldMapping.IncludeInAll = false       // you have _all field disabled
+	TxtFieldMapping.IncludeTermVectors = false // save space, cannot do phrase search or result highlighting
 
 	// a reusable nested doc with dynamic mapping (should be fine for db.*.*, but event.* might be a pandora box)
-	dynamicNestedDocMapping = bleve.NewDocumentMapping()
-	dynamicNestedDocMapping.Dynamic = true
-	dynamicNestedDocMapping.DefaultAnalyzer = keyword.Name
+	DynamicNestedDocMapping = bleve.NewDocumentMapping()
+	DynamicNestedDocMapping.Dynamic = true
+	DynamicNestedDocMapping.DefaultAnalyzer = keyword.Name
 }

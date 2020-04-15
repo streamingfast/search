@@ -19,19 +19,17 @@ import (
 	"fmt"
 	"time"
 
-	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
-	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/shutter"
 	"github.com/dfuse-io/dgrpc"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
+	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
+	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search/router"
+	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
 )
 
 type Config struct {
 	Dmesh                dmeshClient.SearchClient
-	Protocol             pbbstream.Protocol
 	BlockmetaAddr        string // Blockmeta endpoint is queried to validate cursors that are passed LIB and forked out
 	GRPCListenAddr       string // Address to listen for incoming gRPC requests
 	HeadDelayTolerance   uint64 // Number of blocks above a backend's head we allow a request query to be served (Live & Router)
@@ -64,7 +62,7 @@ func (a *App) Run() error {
 	blockmetaCli := pbblockmeta.NewBlockIDClient(conn)
 	forksCli := pbblockmeta.NewForksClient(conn)
 
-	router := router.New(a.config.Protocol, a.config.Dmesh, a.config.HeadDelayTolerance, a.config.LibDelayTolerance, blockmetaCli, forksCli, a.config.EnableRetry)
+	router := router.New(a.config.Dmesh, a.config.HeadDelayTolerance, a.config.LibDelayTolerance, blockmetaCli, forksCli, a.config.EnableRetry)
 
 	a.OnTerminating(router.Shutdown)
 	router.OnTerminated(a.Shutdown)

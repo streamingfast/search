@@ -17,14 +17,8 @@ package search
 import (
 	"testing"
 
-	_ "github.com/dfuse-io/bstream/codecs/deos"
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	// TODO: move all these tests to the `dfuse-eosio:/search` repo/path
-	InitEOSIndexedFields()
-}
 
 func TestSortIndexMatches(t *testing.T) {
 	tests := []struct {
@@ -35,30 +29,30 @@ func TestSortIndexMatches(t *testing.T) {
 		{
 			name: "multiple ascending",
 			matches: []SearchMatch{
-				&EOSSearchMatch{BlockNumber: 10, TrxIDPrefix: "a"},
-				&EOSSearchMatch{BlockNumber: 10, TrxIDPrefix: "b"},
-				&EOSSearchMatch{BlockNumber: 10, TrxIDPrefix: "c"},
-				&EOSSearchMatch{BlockNumber: 11, TrxIDPrefix: "d"},
-				&EOSSearchMatch{BlockNumber: 11, TrxIDPrefix: "e"},
-				&EOSSearchMatch{BlockNumber: 12, TrxIDPrefix: "f"},
-				&EOSSearchMatch{BlockNumber: 13, TrxIDPrefix: "g"},
-				&EOSSearchMatch{BlockNumber: 14, TrxIDPrefix: "h"},
-				&EOSSearchMatch{BlockNumber: 14, TrxIDPrefix: "i"},
-				&EOSSearchMatch{BlockNumber: 14, TrxIDPrefix: "j"},
-				&EOSSearchMatch{BlockNumber: 14, TrxIDPrefix: "k"},
+				&testSearchMatch{blockNumber: 10, trxIDPrefix: "a"},
+				&testSearchMatch{blockNumber: 10, trxIDPrefix: "b"},
+				&testSearchMatch{blockNumber: 10, trxIDPrefix: "c"},
+				&testSearchMatch{blockNumber: 11, trxIDPrefix: "d"},
+				&testSearchMatch{blockNumber: 11, trxIDPrefix: "e"},
+				&testSearchMatch{blockNumber: 12, trxIDPrefix: "f"},
+				&testSearchMatch{blockNumber: 13, trxIDPrefix: "g"},
+				&testSearchMatch{blockNumber: 14, trxIDPrefix: "h"},
+				&testSearchMatch{blockNumber: 14, trxIDPrefix: "i"},
+				&testSearchMatch{blockNumber: 14, trxIDPrefix: "j"},
+				&testSearchMatch{blockNumber: 14, trxIDPrefix: "k"},
 			},
 			expect: []SearchMatch{
-				&EOSSearchMatch{BlockNumber: 10, Index: 0, TrxIDPrefix: "a"},
-				&EOSSearchMatch{BlockNumber: 10, Index: 1, TrxIDPrefix: "b"},
-				&EOSSearchMatch{BlockNumber: 10, Index: 2, TrxIDPrefix: "c"},
-				&EOSSearchMatch{BlockNumber: 11, Index: 0, TrxIDPrefix: "d"},
-				&EOSSearchMatch{BlockNumber: 11, Index: 1, TrxIDPrefix: "e"},
-				&EOSSearchMatch{BlockNumber: 12, Index: 0, TrxIDPrefix: "f"},
-				&EOSSearchMatch{BlockNumber: 13, Index: 0, TrxIDPrefix: "g"},
-				&EOSSearchMatch{BlockNumber: 14, Index: 0, TrxIDPrefix: "h"},
-				&EOSSearchMatch{BlockNumber: 14, Index: 1, TrxIDPrefix: "i"},
-				&EOSSearchMatch{BlockNumber: 14, Index: 2, TrxIDPrefix: "j"},
-				&EOSSearchMatch{BlockNumber: 14, Index: 3, TrxIDPrefix: "k"},
+				&testSearchMatch{blockNumber: 10, index: 0, trxIDPrefix: "a"},
+				&testSearchMatch{blockNumber: 10, index: 1, trxIDPrefix: "b"},
+				&testSearchMatch{blockNumber: 10, index: 2, trxIDPrefix: "c"},
+				&testSearchMatch{blockNumber: 11, index: 0, trxIDPrefix: "d"},
+				&testSearchMatch{blockNumber: 11, index: 1, trxIDPrefix: "e"},
+				&testSearchMatch{blockNumber: 12, index: 0, trxIDPrefix: "f"},
+				&testSearchMatch{blockNumber: 13, index: 0, trxIDPrefix: "g"},
+				&testSearchMatch{blockNumber: 14, index: 0, trxIDPrefix: "h"},
+				&testSearchMatch{blockNumber: 14, index: 1, trxIDPrefix: "i"},
+				&testSearchMatch{blockNumber: 14, index: 2, trxIDPrefix: "j"},
+				&testSearchMatch{blockNumber: 14, index: 3, trxIDPrefix: "k"},
 			},
 		},
 	}

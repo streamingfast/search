@@ -55,7 +55,7 @@ func (b *LiveBackend) SetupSubscriptionHub(
 	})
 
 	archivedBlockSourceFactory := bstream.SourceFromNumFactory(func(startBlockNum uint64, h bstream.Handler) bstream.Source {
-		src := bstream.NewFileSource(b.protocol, blocksStore, startBlockNum, 1, preprocessor, h)
+		src := bstream.NewFileSource(blocksStore, startBlockNum, 1, preprocessor, h)
 		src.SetLogger(zlog)
 		return src
 	})
@@ -71,7 +71,6 @@ func (b *LiveBackend) SetupSubscriptionHub(
 		hub.WithRealtimeTolerance(realtimeTolerance),
 		hub.WithSourceChannelSize(1000), // FIXME: we should not need this, but when the live kicks in, we receive too many blocks at once on the progressPeerPublishing...
 		// maybe an option on the hub to "skip blocks if the channel is full" should apply, but that would be only on that specific subscription
-		hub.WithProtocolOptimisations(b.protocol),
 	)
 	if err != nil {
 		return err

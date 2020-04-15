@@ -20,19 +20,18 @@ import (
 	"net"
 	"time"
 
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
-	pbhead "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
-	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
-	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/shutter"
 	"github.com/dfuse-io/bstream/hub"
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/logging"
+	pbhead "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
+	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/metrics"
+	"github.com/dfuse-io/shutter"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -41,7 +40,6 @@ import (
 
 type LiveBackend struct {
 	*shutter.Shutter
-	protocol                 pbbstream.Protocol
 	startBlock               uint64 // block at which the live router starts live-indexing, upon boot.
 	nextTierBackendsBlockNum *atomic.Uint64
 	hub                      *hub.SubscriptionHub
@@ -53,15 +51,14 @@ type LiveBackend struct {
 	headDelayTolerance       uint64
 }
 
-func New(protocol pbbstream.Protocol, dmeshClient dmeshClient.SearchClient, searchPeer *dmesh.SearchPeer, headDelayTolerance uint64, shutdownDelay time.Duration) *LiveBackend {
-	matchCollector := search.MatchCollectorByType[protocol]
+func New(dmeshClient dmeshClient.SearchClient, searchPeer *dmesh.SearchPeer, headDelayTolerance uint64, shutdownDelay time.Duration) *LiveBackend {
+	matchCollector := search.GetMatchCollector
 	if matchCollector == nil {
-		panic(fmt.Errorf("no match collector for protocol %s, should not happen, you should define a collector", protocol))
+		panic(fmt.Errorf("no match collector set, should not happen, you should define a collector"))
 	}
 
 	live := &LiveBackend{
 		Shutter:                  shutter.New(),
-		protocol:                 protocol,
 		nextTierBackendsBlockNum: &atomic.Uint64{},
 		matchCollector:           matchCollector,
 		dmeshClient:              dmeshClient,
@@ -145,7 +142,7 @@ func (b *LiveBackend) StreamMatches(req *pb.BackendRequest, stream pb.Backend_St
 	zlogger := logging.Logger(ctx, zlog)
 
 	zlogger.Debug("starting live backend query", zap.Reflect("request", req))
-	bquery, err := search.NewParsedQuery(b.protocol, req.Query)
+	bquery, err := search.NewParsedQuery(req.Query)
 	if err != nil {
 		if err == context.Canceled {
 			return derr.Status(codes.Canceled, "context canceled")
@@ -176,7 +173,7 @@ func (b *LiveBackend) StreamMatches(req *pb.BackendRequest, stream pb.Backend_St
 		return err
 	}
 
-	trailer.Set("last-block-read", fmt.Sprintf("%d", liveQuery.lastBlockRead))
+	trailer.Set("last-block-read", fmt.Sprintf("%d", liveQuery.LastBlockRead))
 
 	return nil
 }

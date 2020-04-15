@@ -47,14 +47,14 @@ func (t *Truncator) attemptTruncation() {
 	if t.shouldTruncate() {
 		zlog.Info("truncating below",
 			zap.Uint64("target_truncate_block", t.targetTruncateBlock),
-			zap.Uint64("current_lowest_serveable_block", t.indexPool.LowestServeableBlockNum()))
+			zap.Uint64("current_lowest_serveable_block", t.indexPool.GetLowestServeableBlockNum()))
 		t.indexPool.truncateBelow(t.targetTruncateBlock)
 		t.indexPool.SetLowestServeableBlockNum(t.targetTruncateBlock)
 	}
 
 	// getting the highest current read only block
 	highestIndexedBlock := t.indexPool.LastReadOnlyIndexedBlock()
-	lowestIndexedBlock := t.indexPool.LowestServeableBlockNum()
+	lowestIndexedBlock := t.indexPool.GetLowestServeableBlockNum()
 
 	if (highestIndexedBlock - lowestIndexedBlock) < t.blockCount {
 		zlog.Debug("not enough blocks in pool to truncate",
@@ -72,7 +72,7 @@ func (t *Truncator) attemptTruncation() {
 		zap.Uint64("target_truncate_block", toPublish),
 		zap.Uint64("block_count", t.blockCount))
 
-	if toPublish >= t.indexPool.lowestServeableBlockNum {
+	if toPublish >= t.indexPool.LowestServeableBlockNum {
 		if err := t.publishTailBlock(toPublish); err != nil {
 			zlog.Error("error publishing to dmesh", zap.Error(err))
 			return
@@ -83,7 +83,7 @@ func (t *Truncator) attemptTruncation() {
 }
 
 func (t *Truncator) shouldTruncate() bool {
-	return t.indexPool.LowestServeableBlockNum() < t.targetTruncateBlock
+	return t.indexPool.GetLowestServeableBlockNum() < t.targetTruncateBlock
 }
 
 func (t *Truncator) publishTailBlock(blockNum uint64) error {

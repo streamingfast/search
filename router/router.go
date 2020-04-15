@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/logging"
 	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
@@ -41,7 +41,6 @@ import (
 type Router struct {
 	*shutter.Shutter
 
-	protocol           pbbstream.Protocol
 	blockIDClient      pbblockmeta.BlockIDClient
 	forksClient        pbblockmeta.ForksClient
 	dmeshClient        dmeshClient.SearchClient
@@ -51,12 +50,11 @@ type Router struct {
 	enableRetry        bool
 }
 
-func New(protocol pbbstream.Protocol, dmeshClient dmeshClient.SearchClient, headDelayTolerance uint64, libDelayTolerance uint64, blockIDClient pbblockmeta.BlockIDClient, forksClient pbblockmeta.ForksClient, enableRetry bool) *Router {
+func New(dmeshClient dmeshClient.SearchClient, headDelayTolerance uint64, libDelayTolerance uint64, blockIDClient pbblockmeta.BlockIDClient, forksClient pbblockmeta.ForksClient, enableRetry bool) *Router {
 	return &Router{
 		Shutter:            shutter.New(),
 		forksClient:        forksClient,
 		blockIDClient:      blockIDClient,
-		protocol:           protocol,
 		dmeshClient:        dmeshClient,
 		headDelayTolerance: headDelayTolerance,
 		libDelayTolerance:  libDelayTolerance,
@@ -101,7 +99,7 @@ func (r *Router) StreamMatches(req *pb.RouterRequest, stream pb.Router_StreamMat
 		return status.Errorf(codes.Unavailable, "search is currently unavailable, try again shortly.")
 	}
 
-	_, err := search.NewParsedQuery(r.protocol, req.Query)
+	_, err := search.NewParsedQuery(req.Query)
 	if err != nil {
 		zlogger.Debug("invalid parsed query", zap.String("query", req.Query), zap.Error(err))
 		return err
@@ -162,7 +160,7 @@ func (r *Router) StreamMatches(req *pb.RouterRequest, stream pb.Router_StreamMat
 		zap.String("mode", qRange.mode.String()),
 	)
 
-	qRange = adjustQueryRange(r.protocol, qRange)
+	qRange = adjustQueryRange(qRange)
 	zlogger.Info("adjusted query range",
 		zap.Uint64("low_block_num", qRange.lowBlockNum),
 		zap.Uint64("high_block_num", qRange.highBlockNum),
@@ -255,17 +253,13 @@ func setComplete(trailer metadata.MD, sharder *queryExecutor) {
 	}
 }
 
-func adjustQueryRange(protocol pbbstream.Protocol, qr *QueryRange) *QueryRange {
-	switch protocol {
-	case pbbstream.Protocol_EOS:
-		if qr.lowBlockNum < 2 {
-			// There is no block 0 or 1 in EOS protocol
-			zlog.Debug("adjusting query range for EOS protocol",
-				zap.Uint64("low_block_num", qr.lowBlockNum),
-				zap.Uint64("adjusted_low_block_num", 2),
-			)
-			qr.lowBlockNum = 2
-		}
+func adjustQueryRange(qr *QueryRange) *QueryRange {
+	if qr.lowBlockNum < bstream.GetProtocolFirstBlock {
+		zlog.Debug("adjusting query range for protocol",
+			zap.Uint64("low_block_num", qr.lowBlockNum),
+			zap.Uint64("adjusted_low_block_num", bstream.GetProtocolFirstBlock),
+		)
+		qr.lowBlockNum = bstream.GetProtocolFirstBlock
 	}
 	return qr
 }

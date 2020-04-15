@@ -18,11 +18,10 @@ import (
 	"context"
 	"testing"
 
-	//_ "github.com/dfuse-io/bstream/codecs/deos"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
-	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	_ "github.com/dfuse-io/dfuse-eosio/codecs/deos"
 	"github.com/dfuse-io/dmesh"
 	"github.com/dfuse-io/dstore"
+	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,9 +34,8 @@ func Test_FetchMatchingBlocks(t *testing.T) {
 	store, err := dstore.NewDBinStore(blocksStoreURL)
 	require.NoError(t, err)
 	peer := &dmesh.SearchPeer{}
-	protocol := pbbstream.Protocol_EOS
 
-	fr := NewForkResolver(store, nil, peer, protocol, "", ":9000", ":8080", nil, "/tmp")
+	fr := NewForkResolver(store, nil, peer, ":9000", ":8080", nil, "/tmp")
 	blocks, lib, err := fr.getBlocksDescending(context.Background(),
 		[]*pb.BlockRef{
 			{

@@ -46,13 +46,13 @@ type IndexPool struct {
 	dmeshClient dmeshClient.Client
 
 	indexesStore            dstore.Store
-	lowestServeableBlockNum uint64
+	LowestServeableBlockNum uint64
 
 	// read indexes are indexes opened in read-only, that are already optimized
 	//readPoolStartBlock uint64
 	readPoolLock    sync.RWMutex // Level 2 lock
-	readPool        []*search.ShardIndex
-	perQueryThreads int // Each end-user query will parallelize sub-queries on 15K+ indices
+	ReadPool        []*search.ShardIndex
+	PerQueryThreads int // Each end-user query will parallelize sub-queries on 15K+ indices
 
 	emptyResultsCache roarcache.Cache
 }
@@ -204,10 +204,10 @@ func (p *IndexPool) nextReadOnlyIndexBlock() uint64 {
 	p.readPoolLock.Lock()
 	defer p.readPoolLock.Unlock()
 
-	if len(p.readPool) == 0 {
+	if len(p.ReadPool) == 0 {
 		return 0
 	}
-	lastIndexShard := p.readPool[len(p.readPool)-1]
+	lastIndexShard := p.ReadPool[len(p.ReadPool)-1]
 	return (lastIndexShard.StartBlock + p.ShardSize)
 }
 
@@ -559,7 +559,7 @@ func (p *IndexPool) openReadOnly(baseBlockNum uint64) (*search.ShardIndex, error
 }
 
 func (p *IndexPool) CloseIndexes() (err error) {
-	for _, idx := range p.readPool {
+	for _, idx := range p.ReadPool {
 		idx.Lock.Lock()
 		defer idx.Lock.Unlock()
 
@@ -576,27 +576,27 @@ func (p *IndexPool) CloseIndexes() (err error) {
 
 // LastReadOnlyIndexedBlock returns the block inclusively (999)
 func (p *IndexPool) LastReadOnlyIndexedBlock() uint64 {
-	if len(p.readPool) == 0 {
+	if len(p.ReadPool) == 0 {
 		return 0
 	}
-	idx := p.readPool[len(p.readPool)-1]
+	idx := p.ReadPool[len(p.ReadPool)-1]
 	return idx.EndBlock
 }
 
 func (p *IndexPool) LastReadOnlyIndexedBlockID() string {
-	if len(p.readPool) == 0 {
+	if len(p.ReadPool) == 0 {
 		return ""
 	}
-	idx := p.readPool[len(p.readPool)-1]
+	idx := p.ReadPool[len(p.ReadPool)-1]
 	return idx.EndBlockID
 }
 
 func (p *IndexPool) AppendReadIndexes(idx ...*search.ShardIndex) {
-	p.readPool = append(p.readPool, idx...)
+	p.ReadPool = append(p.ReadPool, idx...)
 }
 
-func (p *IndexPool) LowestServeableBlockNum() uint64 {
-	return p.lowestServeableBlockNum
+func (p *IndexPool) GetLowestServeableBlockNum() uint64 {
+	return p.LowestServeableBlockNum
 }
 
 func (p *IndexPool) SetLowestServeableBlockNum(startBlockNum uint64) error {
@@ -604,14 +604,14 @@ func (p *IndexPool) SetLowestServeableBlockNum(startBlockNum uint64) error {
 	p.readPoolLock.RLock()
 	defer p.readPoolLock.RUnlock()
 
-	if len(p.readPool) != 0 {
-		idx := p.readPool[0]
+	if len(p.ReadPool) != 0 {
+		idx := p.ReadPool[0]
 		if idx.StartBlock != startBlockNum {
 			return fmt.Errorf("first read-only index (start-end: %d-%d) mis-aligned with proposed start block %d", idx.StartBlock, idx.EndBlock, startBlockNum)
 		}
 	}
 
-	p.lowestServeableBlockNum = startBlockNum
+	p.LowestServeableBlockNum = startBlockNum
 
 	return nil
 }
@@ -619,7 +619,7 @@ func (p *IndexPool) SetLowestServeableBlockNum(startBlockNum uint64) error {
 func (p *IndexPool) LowestServeableBlockNumAbove(blockNum uint64) uint64 {
 	p.readPoolLock.RLock()
 	defer p.readPoolLock.RUnlock()
-	for _, idx := range p.readPool {
+	for _, idx := range p.ReadPool {
 		if idx.StartBlock > blockNum {
 			return idx.StartBlock
 		}
@@ -631,14 +631,14 @@ func (p *IndexPool) truncateBelow(blockNum uint64) {
 	p.readPoolLock.Lock()
 	defer p.readPoolLock.Unlock()
 
-	for index, idx := range p.readPool {
+	for index, idx := range p.ReadPool {
 		if idx.StartBlock >= blockNum {
 			// index is above the block num
 			newReadPool := []*search.ShardIndex{}
-			for i := index; i < len(p.readPool); i++ {
-				newReadPool = append(newReadPool, p.readPool[i])
+			for i := index; i < len(p.ReadPool); i++ {
+				newReadPool = append(newReadPool, p.ReadPool[i])
 			}
-			p.readPool = newReadPool
+			p.ReadPool = newReadPool
 			return
 		}
 		// index is below the blockNum should truncate it

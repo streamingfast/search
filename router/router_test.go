@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
-	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
+	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dmesh"
+	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -206,10 +206,10 @@ func Test_CursorStillValid(t *testing.T) {
 
 func Test_adjustQueryRange(t *testing.T) {
 	tests := []struct {
-		name             string
-		queryRange       *QueryRange
-		protocol         pbbstream.Protocol
-		expectQueryRange *QueryRange
+		name                  string
+		queryRange            *QueryRange
+		protocolFirstBlockNum uint64
+		expectQueryRange      *QueryRange
 	}{
 		{
 			name: "EOS with low block num 0",
@@ -217,7 +217,7 @@ func Test_adjustQueryRange(t *testing.T) {
 				lowBlockNum:  0,
 				highBlockNum: 10,
 			},
-			protocol: pbbstream.Protocol_EOS,
+			protocolFirstBlockNum: 2,
 			expectQueryRange: &QueryRange{
 				lowBlockNum:  2,
 				highBlockNum: 10,
@@ -229,7 +229,7 @@ func Test_adjustQueryRange(t *testing.T) {
 				lowBlockNum:  1,
 				highBlockNum: 10,
 			},
-			protocol: pbbstream.Protocol_EOS,
+			protocolFirstBlockNum: 2,
 			expectQueryRange: &QueryRange{
 				lowBlockNum:  2,
 				highBlockNum: 10,
@@ -241,7 +241,7 @@ func Test_adjustQueryRange(t *testing.T) {
 				lowBlockNum:  2,
 				highBlockNum: 10,
 			},
-			protocol: pbbstream.Protocol_EOS,
+			protocolFirstBlockNum: 2,
 			expectQueryRange: &QueryRange{
 				lowBlockNum:  2,
 				highBlockNum: 10,
@@ -253,7 +253,7 @@ func Test_adjustQueryRange(t *testing.T) {
 				lowBlockNum:  3,
 				highBlockNum: 10,
 			},
-			protocol: pbbstream.Protocol_EOS,
+			protocolFirstBlockNum: 2,
 			expectQueryRange: &QueryRange{
 				lowBlockNum:  3,
 				highBlockNum: 10,
@@ -265,7 +265,7 @@ func Test_adjustQueryRange(t *testing.T) {
 				lowBlockNum:  0,
 				highBlockNum: 10,
 			},
-			protocol: pbbstream.Protocol_ETH,
+			protocolFirstBlockNum: 0,
 			expectQueryRange: &QueryRange{
 				lowBlockNum:  0,
 				highBlockNum: 10,
@@ -277,7 +277,7 @@ func Test_adjustQueryRange(t *testing.T) {
 				lowBlockNum:  1,
 				highBlockNum: 10,
 			},
-			protocol: pbbstream.Protocol_ETH,
+			protocolFirstBlockNum: 0,
 			expectQueryRange: &QueryRange{
 				lowBlockNum:  1,
 				highBlockNum: 10,
@@ -289,7 +289,7 @@ func Test_adjustQueryRange(t *testing.T) {
 				lowBlockNum:  2,
 				highBlockNum: 10,
 			},
-			protocol: pbbstream.Protocol_ETH,
+			protocolFirstBlockNum: 0,
 			expectQueryRange: &QueryRange{
 				lowBlockNum:  2,
 				highBlockNum: 10,
@@ -301,7 +301,7 @@ func Test_adjustQueryRange(t *testing.T) {
 				lowBlockNum:  3,
 				highBlockNum: 10,
 			},
-			protocol: pbbstream.Protocol_ETH,
+			protocolFirstBlockNum: 0,
 			expectQueryRange: &QueryRange{
 				lowBlockNum:  3,
 				highBlockNum: 10,
@@ -311,7 +311,8 @@ func Test_adjustQueryRange(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expectQueryRange, adjustQueryRange(test.protocol, test.queryRange))
+			bstream.GetProtocolFirstBlock = test.protocolFirstBlockNum
+			assert.Equal(t, test.expectQueryRange, adjustQueryRange(test.queryRange))
 		})
 	}
 }

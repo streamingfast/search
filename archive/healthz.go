@@ -20,20 +20,11 @@ import (
 	"net/http"
 
 	"github.com/dfuse-io/derr"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 )
 
-var livenessQuery *search.BleveQuery
-
-func init() {
-	search.InitEOSIndexedFields()
-	//search.InitETHIndexedFields()
-
-	// FIXME: Matt, this needs to become platform agnostic, what's the purpose of this exactly? Warm up?
-	livenessQuery, _ = search.NewParsedQuery(pbbstream.Protocol_EOS, "receiver:999")
-}
+var LivenessQuery *search.BleveQuery
 
 type healthz struct {
 	Ready          bool `json:"ready"`
@@ -43,7 +34,7 @@ type healthz struct {
 
 func (b *ArchiveBackend) healthReport() (out *healthz) {
 	out = &healthz{
-		Ready:        b.pool.IsReady(),
+		Ready:        b.Pool.IsReady(),
 		ShuttingDown: b.shuttingDown.Load(),
 	}
 	return

@@ -21,12 +21,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/logging"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pbhead "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
@@ -44,21 +42,19 @@ import (
 type ArchiveBackend struct {
 	*shutter.Shutter
 
-	pool            *IndexPool
-	searchPeer      *dmesh.SearchPeer
+	Pool            *IndexPool
+	SearchPeer      *dmesh.SearchPeer
 	dmeshClient     dmeshClient.Client
-	protocol        pbbstream.Protocol
 	grpcListenAddr  string
 	httpListenAddr  string
 	matchCollector  search.MatchCollector
 	httpServer      *http.Server
-	maxQueryThreads int
+	MaxQueryThreads int
 	shuttingDown    *atomic.Bool
 	shutdownDelay   time.Duration
 }
 
 func NewBackend(
-	protocol pbbstream.Protocol,
 	pool *IndexPool,
 	dmeshClient dmeshClient.Client,
 	searchPeer *dmesh.SearchPeer,
@@ -67,17 +63,16 @@ func NewBackend(
 	shutdownDelay time.Duration,
 ) *ArchiveBackend {
 
-	matchCollector := search.MatchCollectorByType[protocol]
+	matchCollector := search.GetMatchCollector
 	if matchCollector == nil {
-		panic(fmt.Errorf("no match collector for protocol %s, should not happen, you should define a collector", protocol))
+		panic(fmt.Errorf("no match collector set, should not happen, you should define a collector"))
 	}
 
 	archive := &ArchiveBackend{
 		Shutter:        shutter.New(),
-		protocol:       protocol,
-		pool:           pool,
+		Pool:           pool,
 		dmeshClient:    dmeshClient,
-		searchPeer:     searchPeer,
+		SearchPeer:     searchPeer,
 		grpcListenAddr: grpcListenAddr,
 		httpListenAddr: httpListenAddr,
 		matchCollector: matchCollector,
@@ -89,7 +84,7 @@ func NewBackend(
 }
 
 func (b *ArchiveBackend) SetMaxQueryThreads(threads int) {
-	b.maxQueryThreads = threads
+	b.MaxQueryThreads = threads
 }
 
 // FIXME: are we *really* servicing some things through REST ?!  That
@@ -110,10 +105,7 @@ func (b *ArchiveBackend) startServer() {
 	coreRouter.Use(trackingMiddleware)
 
 	coreRouter.HandleFunc("/v0/search/indexed_fields", func(w http.ResponseWriter, r *http.Request) {
-		bstream.MustDoForProtocol(b.protocol, map[pbbstream.Protocol]func(){
-			pbbstream.Protocol_EOS: func() { writeJSON(r.Context(), w, search.GetEOSIndexedFields()) },
-			// pbbstream.Protocol_ETH: func() { writeJSON(r.Context(), w, search.GetETHIndexedFields()) },
-		})
+		writeJSON(r.Context(), w, search.GetIndexedFieldsMap())
 	})
 
 	// HTTP
@@ -150,7 +142,7 @@ func (b *ArchiveBackend) startServer() {
 
 func (b *ArchiveBackend) GetHeadInfo(ctx context.Context, r *pbhead.HeadInfoRequest) (*pbhead.HeadInfoResponse, error) {
 	resp := &pbhead.HeadInfoResponse{
-		LibNum: b.pool.LastReadOnlyIndexedBlock(),
+		LibNum: b.Pool.LastReadOnlyIndexedBlock(),
 	}
 	return resp, nil
 }
@@ -168,7 +160,7 @@ func (b *ArchiveBackend) StreamHeadInfo(r *pbhead.HeadInfoRequest, stream pbhead
 }
 
 func (b *ArchiveBackend) WarmupWithQuery(query string, low, high uint64) error {
-	bquery, err := search.NewParsedQuery(b.protocol, query)
+	bquery, err := search.NewParsedQuery(query)
 	if err != nil {
 		return err
 	}
@@ -200,12 +192,12 @@ func (b *ArchiveBackend) StreamMatches(req *pbsearch.BackendRequest, stream pbse
 	zlogger := logging.Logger(ctx, zlog)
 	zlogger.Info("starting streaming search query processing")
 
-	bquery, err := search.NewParsedQuery(b.protocol, req.Query)
+	bquery, err := search.NewParsedQuery(req.Query)
 	if err != nil {
 		return err // status.New(codes.InvalidArgument, err.Error())
 	}
 
-	metrics := search.NewQueryMetrics(zlogger, req.Descending, bquery.Raw, b.pool.ShardSize, req.LowBlockNum, req.HighBlockNum)
+	metrics := search.NewQueryMetrics(zlogger, req.Descending, bquery.Raw, b.Pool.ShardSize, req.LowBlockNum, req.HighBlockNum)
 	defer metrics.Finalize()
 
 	pmetrics.ActiveQueryCount.Inc()
@@ -219,7 +211,7 @@ func (b *ArchiveBackend) StreamMatches(req *pbsearch.BackendRequest, stream pbse
 
 	archiveQuery := b.newArchiveQuery(ctx, req.Descending, req.LowBlockNum, req.HighBlockNum, bquery, metrics)
 
-	first, _, irr, _, _, _ := b.searchPeer.HeadBlockPointers()
+	first, _, irr, _, _, _ := b.SearchPeer.HeadBlockPointers()
 	if err := archiveQuery.checkBoundaries(first, irr); err != nil {
 		return err
 	}
@@ -294,11 +286,11 @@ func (b *ArchiveBackend) stop() {
 	// allow kube service the time to finish in-flight request before the service stops
 	// routing traffic
 	// We are probably on batch mode where no search peer exists, so don't publish it
-	if b.searchPeer != nil {
-		b.searchPeer.Locked(func() {
-			b.searchPeer.Ready = false
+	if b.SearchPeer != nil {
+		b.SearchPeer.Locked(func() {
+			b.SearchPeer.Ready = false
 		})
-		err := b.dmeshClient.PublishNow(b.searchPeer)
+		err := b.dmeshClient.PublishNow(b.SearchPeer)
 		if err != nil {
 			zlog.Error("could not set search peer to not ready", zap.Error(err))
 		}
@@ -313,7 +305,7 @@ func (b *ArchiveBackend) stop() {
 	zlog.Info("shutdown http server", zap.Error(err))
 
 	zlog.Info("closing indexes cleanly")
-	err = b.pool.CloseIndexes()
+	err = b.Pool.CloseIndexes()
 	if err != nil {
 		zlog.Error("error closing indexes", zap.Error(err))
 	}

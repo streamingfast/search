@@ -90,7 +90,7 @@ func RunSingleIndexQuery(
 
 	allSingleIndexResults := coll.Results()
 
-	matches, err := matchCollector.Collect(ctx, lowBlockNum, highBlockNum, allSingleIndexResults)
+	matches, err := matchCollector(ctx, lowBlockNum, highBlockNum, allSingleIndexResults)
 	if err != nil {
 		return nil, err
 	}

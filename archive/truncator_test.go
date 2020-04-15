@@ -57,7 +57,7 @@ func TestIndexPool_shouldTruncate(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			truncate := &Truncator{
 				indexPool: &IndexPool{
-					lowestServeableBlockNum: test.lowestServeableBlockNum,
+					LowestServeableBlockNum: test.lowestServeableBlockNum,
 				},
 				targetTruncateBlock: test.targetBlockNum,
 			}

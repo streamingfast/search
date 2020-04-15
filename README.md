@@ -18,47 +18,6 @@ Secondly, open a port forward to dmesh:
 
     kubectl -n dmesh port-forward svc/etcd-client 2379
 
-### Frozen Archive Backend  from 0 to 10k
-```shell script
-go build -o sqe ./cmd/search && \
-./sqe serve-archive \
-    --listen-addr=:9000 \
-    --protocol=EOS \
-    --blockmeta-addr=:9001 \
-    --block-stream-addr=:9001 \
-    --blocks-store=gs://dfuseio-global-blocks-us/eos-dev1/v3 \
-    --indexes-store=gs://dfuseio-global-indices-us/eos-dev1/v2-0 \
-    --dfuse-hooks-action-name=dfuseiohooks:event \
-    --dl-threads=2 \
-    --max-query-threads=12 \
-    --realtime-tolerance=10s \
-    --shard-size=5000 \
-    --sync-from-storage \
-    --sync-start-block=0 \
-    --sync-max-indexes=2 \
-    --index-pipeline=false
-```
-
-### Live Archive Backend
-
-```shell script
-go build -o sqe ./cmd/search && \
-./sqe serve-live \
-  --listen-addr=:9000 \
-  --block-stream-addr=:9001 \
-  --blocks-store=gs://dfuseio-global-blocks-us/eos-dev1/v3 \
-  --protocol=EOS \
-  --truncation-threshold=2
-```
-
-### Router
-
-```shell script
-go build -o sqe ./cmd/search && \
-./sqe router \
-  --listen-addr=:9000 \
-  --protocol=EOS
-```
 
 echo '{
     "query": "action:onblock",

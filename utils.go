@@ -19,13 +19,6 @@ import (
 	"strconv"
 )
 
-func Uint16to32s(in []uint16) (out []uint32) {
-	for _, i := range in {
-		out = append(out, uint32(i))
-	}
-	return
-}
-
 func MapFirstNChunks(input []byte, nChunks int, chunkSize int) map[string]string {
 	mapData := make(map[string]string)
 	DoForFirstNChunks(input, nChunks, chunkSize, func(idx int, chunk []byte) {

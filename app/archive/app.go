@@ -21,13 +21,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/archive"
@@ -39,29 +37,28 @@ import (
 
 type Config struct {
 	// dmesh configuration
-	Dmesh            dmeshClient.SearchClient
-	Protocol         pbbstream.Protocol
-	ServiceVersion   string        // dmesh service version (v1)
-	TierLevel        uint32        // level of the search tier
-	GRPCListenAddr   string        // Address to listen for incoming gRPC requests
-	HTTPListenAddr   string        // Address to listen for incoming http requests
-	PublishDuration  time.Duration // longest duration a dmesh peer will not publish
-	EnableMovingTail bool          // Enable moving tail, requires a relative --start-block (negative number)
-	IndexesStoreURL  string        // location of indexes to download/open/serve
-	IndexesPath      string        // location where to store the downloaded index files
-	ShardSize        uint64        // indexes shard size
-	StartBlock       int64         // Start at given block num, the initial sync and polling
-	StopBlock        uint64        // Stop before given block num, the initial sync and polling
-	SyncFromStore    bool          // Download missing indexes from --indexes-store before starting
-	SyncMaxIndexes   int           // Maximum number of indexes to sync. On production, use a very large number.
-	IndicesDLThreads int           // Number of indices files to download from the GS input store and decompress in parallel. In prod, use large value like 20.
-	NumQueryThreads  int           // Number of end-user query parallel threads to query blocks indexes
-	IndexPolling     bool          // Populate local indexes using indexes store polling.
-	WarmupFilepath   string        // Optional filename containing queries to warm-up the search
-	ShutdownDelay    time.Duration //On shutdown, time to wait before actually leaving, to try and drain connections
-	EnableEmptyResultsCache bool // Enable roaring-bitmap-based empty results caching
-	MemcacheAddr string // Empty results cache's memcache server address
-	EnableReadinessProbe bool // Creates a health check probe
+	Dmesh                   dmeshClient.SearchClient
+	ServiceVersion          string        // dmesh service version (v1)
+	TierLevel               uint32        // level of the search tier
+	GRPCListenAddr          string        // Address to listen for incoming gRPC requests
+	HTTPListenAddr          string        // Address to listen for incoming http requests
+	PublishDuration         time.Duration // longest duration a dmesh peer will not publish
+	EnableMovingTail        bool          // Enable moving tail, requires a relative --start-block (negative number)
+	IndexesStoreURL         string        // location of indexes to download/open/serve
+	IndexesPath             string        // location where to store the downloaded index files
+	ShardSize               uint64        // indexes shard size
+	StartBlock              int64         // Start at given block num, the initial sync and polling
+	StopBlock               uint64        // Stop before given block num, the initial sync and polling
+	SyncFromStore           bool          // Download missing indexes from --indexes-store before starting
+	SyncMaxIndexes          int           // Maximum number of indexes to sync. On production, use a very large number.
+	IndicesDLThreads        int           // Number of indices files to download from the GS input store and decompress in parallel. In prod, use large value like 20.
+	NumQueryThreads         int           // Number of end-user query parallel threads to query blocks indexes
+	IndexPolling            bool          // Populate local indexes using indexes store polling.
+	WarmupFilepath          string        // Optional filename containing queries to warm-up the search
+	ShutdownDelay           time.Duration //On shutdown, time to wait before actually leaving, to try and drain connections
+	EnableEmptyResultsCache bool          // Enable roaring-bitmap-based empty results caching
+	MemcacheAddr            string        // Empty results cache's memcache server address
+	EnableReadinessProbe    bool          // Creates a health check probe
 }
 type App struct {
 	*shutter.Shutter
@@ -77,6 +74,10 @@ func New(config *Config) *App {
 }
 
 func (a *App) Run() error {
+	if err := search.ValidateRegistry(); err != nil {
+		return err
+	}
+
 	zlog.Info("running archive app ", zap.Reflect("config", a.config))
 
 	var cache roarcache.Cache
@@ -84,13 +85,6 @@ func (a *App) Run() error {
 		zlog.Info("setting up roar cache")
 		cache = roarcache.NewMemcache(a.config.MemcacheAddr, 30*24*time.Hour, a.config.ShardSize)
 	}
-
-
-	zlog.Info("initializing indexed fields cache")
-	bstream.MustDoForProtocol(a.config.Protocol, map[pbbstream.Protocol]func(){
-		pbbstream.Protocol_EOS: search.InitEOSIndexedFields,
-		// pbbstream.Protocol_ETH: search.InitETHIndexedFields,
-	})
 
 	zlog.Info("creating search peer")
 	movingHead := a.config.StopBlock == 0
@@ -190,11 +184,11 @@ func (a *App) Run() error {
 	}
 
 	zlog.Info("setting up archive backend")
-	archiveBackend := archive.NewBackend(a.config.Protocol, indexPool, a.config.Dmesh, searchPeer, a.config.GRPCListenAddr, a.config.HTTPListenAddr, a.config.ShutdownDelay)
+	archiveBackend := archive.NewBackend(indexPool, a.config.Dmesh, searchPeer, a.config.GRPCListenAddr, a.config.HTTPListenAddr, a.config.ShutdownDelay)
 	archiveBackend.SetMaxQueryThreads(a.config.NumQueryThreads)
 
 	if a.config.WarmupFilepath != "" {
-		err := warmupSearch(a.config.WarmupFilepath, indexPool.LowestServeableBlockNum(), indexPool.LastReadOnlyIndexedBlock(), archiveBackend)
+		err := warmupSearch(a.config.WarmupFilepath, indexPool.GetLowestServeableBlockNum(), indexPool.LastReadOnlyIndexedBlock(), archiveBackend)
 		if err != nil {
 			return fmt.Errorf("unable to warmup search: %w", err)
 		}

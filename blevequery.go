@@ -16,35 +16,26 @@ package search
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/blevesearch/bleve/search/query"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
-	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/search/querylang"
 	"google.golang.org/grpc/codes"
 )
 
+type BleveQueryFactory func(rawQuery string) *BleveQuery
+
 type BleveQuery struct {
 	Raw              string
 	ast              *querylang.AST
-	fieldTransformer querylang.FieldTransformer
+	FieldTransformer querylang.FieldTransformer
 	query            query.Query
-	fieldNames       []string
-	validator        BleveQueryValdiator
+	FieldNames       []string
+	Validator        BleveQueryValdiator
 }
 
-func NewParsedQuery(protocol pbbstream.Protocol, rawQuery string) (*BleveQuery, error) {
-	bquery := &BleveQuery{
-		Raw: rawQuery,
-	}
-
-	bstream.MustDoForProtocol(protocol, map[pbbstream.Protocol]func(){
-		// pbbstream.Protocol_ETH: bquery.InitializeForETH,
-		pbbstream.Protocol_EOS: bquery.InitializeForEOS,
-	})
+func NewParsedQuery(rawQuery string) (*BleveQuery, error) {
+	bquery := GetBleveQueryFactory(rawQuery)
 
 	if err := bquery.Parse(); err != nil {
 		// FIXME: when the query failed, we want to return
@@ -61,16 +52,6 @@ func NewParsedQuery(protocol pbbstream.Protocol, rawQuery string) (*BleveQuery, 
 	return bquery, nil
 }
 
-func (q *BleveQuery) InitializeForEOS() {
-	q.fieldTransformer = querylang.NoOpFieldTransformer
-	q.validator = &EOSBleveQueryValidator{}
-}
-
-// func (q *BleveQuery) InitializeForETH() {
-// 	q.fieldTransformer = &querylang.ETHFieldTransformer{}
-// 	q.validator = &ETHBleveQueryValidator{}
-// }
-
 func (q *BleveQuery) Parse() error {
 	query, err := querylang.Parse(q.Raw)
 	if err != nil {
@@ -83,11 +64,11 @@ func (q *BleveQuery) Parse() error {
 		return fmt.Errorf("'status' field deprecated, only 'executed' actions are indexed nowadays (%s); see release notes", err)
 	}
 
-	if err := query.ApplyTransforms(q.fieldTransformer); err != nil {
+	if err := query.ApplyTransforms(q.FieldTransformer); err != nil {
 		return fmt.Errorf("applying transforms: %s", err)
 	}
 
-	q.fieldNames = query.FindAllFieldNames()
+	q.FieldNames = query.FindAllFieldNames()
 	q.query = query.ToBleve()
 
 	return nil
@@ -98,42 +79,13 @@ func (q *BleveQuery) BleveQuery() query.Query {
 }
 
 func (q *BleveQuery) Validate() error {
-	if q.validator == nil {
+	if q.Validator == nil {
 		return nil
 	}
 
-	return q.validator.Validate(q)
+	return q.Validator.Validate(q)
 }
 
 type BleveQueryValdiator interface {
 	Validate(q *BleveQuery) error
-}
-
-var NoOpBleveQueryValidator BleveQueryValdiator
-
-type EOSBleveQueryValidator struct{}
-
-func (v *EOSBleveQueryValidator) Validate(q *BleveQuery) error {
-	indexedFieldsMap := GetEOSIndexedFieldsMap()
-
-	var unknownFields []string
-	for _, fieldName := range q.fieldNames {
-		if strings.HasPrefix(fieldName, "data.") {
-			fieldName = strings.Join(strings.Split(fieldName, ".")[:2], ".")
-		}
-
-		if indexedFieldsMap[fieldName] != nil || strings.HasPrefix(fieldName, "event.") || strings.HasPrefix(fieldName, "parent.") /* we could list the optional fields for `parent.*` */ {
-			continue
-		}
-		unknownFields = append(unknownFields, fieldName)
-	}
-
-	if len(unknownFields) <= 0 {
-		return nil
-	}
-
-	sort.Strings(unknownFields)
-
-	invalidArgString := "The following fields you are trying to search are not currently indexed: '%s'. Contact our support team for more."
-	return derr.Statusf(codes.InvalidArgument, invalidArgString, strings.Join(unknownFields, "', '"))
 }

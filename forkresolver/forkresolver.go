@@ -21,10 +21,6 @@ import (
 	"net"
 	"sort"
 
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
-	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
-	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/shutter"
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/dgrpc"
@@ -32,8 +28,11 @@ import (
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
 	"github.com/dfuse-io/logging"
+	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/metrics"
+	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 )
@@ -42,37 +41,29 @@ var MaxLookupBlocks = uint64(10000)
 
 type ForkResolver struct {
 	*shutter.Shutter
-	grpcListenAddr       string
-	httpListenAddr       string
-	searchPeer           *dmesh.SearchPeer
-	dmeshClient          dmeshClient.SearchClient
-	protocol             pbbstream.Protocol
-	blocksStore          dstore.Store
-	indexingRestrictions []*search.Restriction
-	createSingleIndex    func(blk *bstream.Block) (interface{}, error)
+	grpcListenAddr    string
+	httpListenAddr    string
+	searchPeer        *dmesh.SearchPeer
+	dmeshClient       dmeshClient.SearchClient
+	blocksStore       dstore.Store
+	createSingleIndex func(blk *bstream.Block) (interface{}, error)
 }
 
 func NewForkResolver(
 	blocksStore dstore.Store,
 	dmeshClient dmeshClient.SearchClient,
 	searchPeer *dmesh.SearchPeer,
-	protocol pbbstream.Protocol,
-	dfuseHooksActionName string,
 	grpcListenAddr string,
 	httpListenAddr string,
-	indexingRestrictions []*search.Restriction,
+	mapper search.BlockMapper,
 	indicesPath string) *ForkResolver {
-	mapper := search.MustGetBlockMapper(
-		protocol,
-		dfuseHooksActionName,
-		indexingRestrictions)
+
 	p := search.NewPreIndexer(mapper, indicesPath)
 
 	return &ForkResolver{
 		Shutter:           shutter.New(),
 		dmeshClient:       dmeshClient,
 		searchPeer:        searchPeer,
-		protocol:          protocol,
 		blocksStore:       blocksStore,
 		grpcListenAddr:    grpcListenAddr,
 		httpListenAddr:    httpListenAddr,
@@ -140,7 +131,7 @@ func (f *ForkResolver) StreamUndoMatches(req *pbsearch.ForkResolveRequest, strea
 		zlogger.Warn("get_blocks called with no refs")
 		return derr.Statusf(codes.InvalidArgument, "invalid argument: no refs requested")
 	}
-	bquery, err := search.NewParsedQuery(f.protocol, req.Query)
+	bquery, err := search.NewParsedQuery(req.Query)
 	if err != nil {
 		if err == context.Canceled {
 			return derr.Status(codes.Canceled, "context canceled")
@@ -150,7 +141,7 @@ func (f *ForkResolver) StreamUndoMatches(req *pbsearch.ForkResolveRequest, strea
 
 	blocks, libnum, err := f.getBlocksDescending(ctx, req.ForkedBlockRefs)
 
-	collector := search.MatchCollectorByType[f.protocol]
+	collector := search.GetMatchCollector
 	for _, blk := range blocks {
 		zlog.Debug("getting block", zap.String("id", blk.ID()), zap.Uint64("num", blk.Num()))
 		obj, err := f.createSingleIndex(blk)
@@ -250,7 +241,7 @@ func (f *ForkResolver) getBlocksDescending(ctx context.Context, refs []*pbsearch
 		return nil
 	})
 
-	src := bstream.NewFileSource(f.protocol, f.blocksStore, lowest, 1, nil, h)
+	src := bstream.NewFileSource(f.blocksStore, lowest, 1, nil, h)
 	src.SetNotFoundCallback(func(_ uint64) {
 		src.Shutdown(fmt.Errorf("cannot run forkresolver on missing block files")) // ensure we don't stall here if request was for blocks future
 	})

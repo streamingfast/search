@@ -25,7 +25,6 @@ import (
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
@@ -37,7 +36,6 @@ import (
 
 type Config struct {
 	Dmesh                    dmeshClient.SearchClient
-	Protocol                 pbbstream.Protocol
 	ServiceVersion           string        // dmesh service version (v1)
 	TierLevel                uint32        // level of the search tier
 	GRPCListenAddr           string        // Address to listen for incoming gRPC requests
@@ -59,23 +57,28 @@ type Config struct {
 
 }
 
+type Modules struct {
+	BlockMapper search.BlockMapper
+}
+
 var LiveAppStartAborted = fmt.Errorf("getting start block aborted by live application")
 
 type App struct {
 	*shutter.Shutter
 	config         *Config
+	modules        *Modules
 	readinessProbe pbhealth.HealthClient
 }
 
-func New(config *Config) *App {
+func New(config *Config, modules *Modules) *App {
 	return &App{
 		Shutter: shutter.New(),
 		config:  config,
+		modules: modules,
 	}
 }
 func (a *App) Run() error {
 	zlog.Info("running live app ", zap.Reflect("config", a.config))
-
 
 	zlog.Info("clearing working directory", zap.Reflect("working_directory", a.config.LiveIndexesPath))
 	err := os.RemoveAll(a.config.LiveIndexesPath)
@@ -97,7 +100,7 @@ func (a *App) Run() error {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}
 
-	lb := livebackend.New(a.config.Protocol, a.config.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
+	lb := livebackend.New(a.config.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
 
 	zlog.Info("setting up blockmeta")
 	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)
@@ -124,18 +127,10 @@ func (a *App) Run() error {
 		zap.Uint64("start_block_num", startBlock.Num()),
 	)
 
-	restrictions, err := search.ParseRestrictionsJSON(a.config.IndexingRestrictionsJSON)
-	if err != nil {
-		return fmt.Errorf("failed parsing restrictions JSON")
-	}
-	if len(restrictions) > 0 {
-		zlog.Info("Applying restrictions on indexing", zap.Reflect("restrictions", restrictions))
-	}
-
 	zlog.Info("setting up subscription hub", zap.Uint64("start_block", startBlock.Num()))
 	err = lb.SetupSubscriptionHub(
 		startBlock,
-		search.MustGetBlockMapper(a.config.Protocol, a.config.DfuseHooksActionName, restrictions),
+		a.modules.BlockMapper,
 		blocksStore,
 		a.config.BlockstreamAddr,
 		a.config.LiveIndexesPath,

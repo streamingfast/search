@@ -26,12 +26,12 @@ import (
 )
 
 func (b *ArchiveBackend) WarmUpArchive(ctx context.Context, low, high uint64, bquery *search.BleveQuery) error {
-	if b.maxQueryThreads == 0 {
+	if b.MaxQueryThreads == 0 {
 		panic("max query threads can't be zero")
 	}
 	counter := atomic.NewUint64(0)
-	eg := llerrgroup.New(b.maxQueryThreads)
-	indexIterator, err := b.pool.GetIndexIterator(low, high, false)
+	eg := llerrgroup.New(b.MaxQueryThreads)
+	indexIterator, err := b.Pool.GetIndexIterator(low, high, false)
 	if err != nil {
 		return err
 	}

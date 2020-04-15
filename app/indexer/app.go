@@ -23,7 +23,6 @@ import (
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
 	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
@@ -37,7 +36,6 @@ type Config struct {
 	GRPCListenAddr                      string // path for gRPC healthcheck
 	IndicesStoreURL                     string // Path to upload the wirtten index shards
 	BlocksStoreURL                      string // Path to read blocks archives
-	Protocol                            pbbstream.Protocol
 	BlockstreamAddr                     string // gRPC URL to reach a stream of blocks
 	DfuseHooksActionName                string // The dfuse Hooks event action name to intercept"
 	IndexingRestrictionsJSON            string // optional json-formatted set of indexing restrictions, like a blacklist
@@ -55,11 +53,16 @@ type Config struct {
 	EnableReadinessProbe                bool   // Creates a health check probe
 }
 
+type Modules struct {
+	BlockMapper search.BlockMapper
+}
+
 var IndexerAppStartAborted = fmt.Errorf("getting irr block aborted by indexer application")
 
 type App struct {
 	*shutter.Shutter
 	config         *Config
+	modules        *Modules
 	readinessProbe pbhealth.HealthClient
 }
 
@@ -84,22 +87,11 @@ func (a *App) Run() error {
 	}
 
 	zlog.Info("setting up indexer")
-
-	restrictions, err := search.ParseRestrictionsJSON(a.config.IndexingRestrictionsJSON)
-	if err != nil {
-		return fmt.Errorf("failed parsing restrictions JSON")
-	}
-	if len(restrictions) > 0 {
-		zlog.Info("Applying restrictions on indexing", zap.Reflect("restrictions", restrictions))
-	}
-
 	dexer := indexer.NewIndexer(
-		a.config.Protocol,
 		indexesStore,
 		blocksStore,
 		a.config.BlockstreamAddr,
-		a.config.DfuseHooksActionName,
-		restrictions,
+		a.modules.BlockMapper,
 		a.config.WritablePath,
 		a.config.ShardSize,
 		a.config.HTTPListenAddr,

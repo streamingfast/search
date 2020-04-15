@@ -24,25 +24,28 @@ import (
 	"testing"
 	"time"
 
-	pbbstream "github.com/dfuse-io/pbgo/dfuse/bstream/v1"
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	"github.com/dfuse-io/search"
 	"github.com/stretchr/testify/require"
 )
 
+func init() {
+	search.GetMatchCollector = search.TestMatchCollector
+}
 func TestRunQueryMainnet60M(t *testing.T) {
 	t.Skip("run fetch.sh to download the test index, and comment this line.")
 	pool := &IndexPool{
 		ShardSize:       5000,
-		perQueryThreads: 2,
+		PerQueryThreads: 2,
 	}
-	pool.lowestServeableBlockNum = 60000000
+	pool.LowestServeableBlockNum = 60000000
 
 	idx, err := pool.openReadOnly(60000000)
 	require.NoError(t, err)
 
-	pool.readPool = append(pool.readPool, idx)
+	pool.ReadPool = append(pool.ReadPool, idx)
 
-	client, cleanup := newTestClient(t, &ArchiveBackend{pool: pool, maxQueryThreads: 2}, pbbstream.Protocol_EOS)
+	client, cleanup := TestNewClient(t, &ArchiveBackend{Pool: pool, MaxQueryThreads: 2})
 	defer cleanup()
 
 	queries, err := readLines("testdata/60M-mainnet-index/raw_queries_sort_uniq.txt")
