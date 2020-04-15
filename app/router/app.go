@@ -23,6 +23,7 @@ import (
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
+	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/router"
 	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
@@ -53,6 +54,9 @@ func New(config *Config) *App {
 
 func (a *App) Run() error {
 	zlog.Info("running router app ", zap.Reflect("config", a.config))
+	if err := search.ValidateRegistry(); err != nil {
+		return err
+	}
 
 	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)
 	if err != nil {

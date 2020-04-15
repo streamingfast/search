@@ -76,6 +76,9 @@ func New(config *Config, modules *Modules) *App {
 }
 func (a *App) Run() error {
 	zlog.Info("running live app ", zap.Reflect("config", a.config))
+	if err := search.ValidateRegistry(); err != nil {
+		return err
+	}
 
 	zlog.Info("clearing working directory", zap.Reflect("working_directory", a.config.LiveIndexesPath))
 	err := os.RemoveAll(a.config.LiveIndexesPath)

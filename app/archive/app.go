@@ -74,11 +74,10 @@ func New(config *Config) *App {
 }
 
 func (a *App) Run() error {
+	zlog.Info("running archive app ", zap.Reflect("config", a.config))
 	if err := search.ValidateRegistry(); err != nil {
 		return err
 	}
-
-	zlog.Info("running archive app ", zap.Reflect("config", a.config))
 
 	var cache roarcache.Cache
 	if a.config.EnableEmptyResultsCache {

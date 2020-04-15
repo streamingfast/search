@@ -61,6 +61,9 @@ func New(config *Config, modules *Modules) *App {
 
 func (a *App) Run() error {
 	zlog.Info("running forkresolver app ", zap.Reflect("config", a.config))
+	if err := search.ValidateRegistry(); err != nil {
+		return err
+	}
 
 	blocksStore, err := dstore.NewDBinStore(a.config.BlocksStoreURL)
 	if err != nil {

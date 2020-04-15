@@ -74,6 +74,9 @@ func New(config *Config, modules *Modules) *App {
 
 func (a *App) Run() error {
 	zlog.Info("running indexer app ", zap.Reflect("config", a.config))
+	if err := search.ValidateRegistry(); err != nil {
+		return err
+	}
 
 	indexesStore, err := dstore.NewStore(a.config.IndicesStoreURL, "", "zstd", true)
 	if err != nil {
