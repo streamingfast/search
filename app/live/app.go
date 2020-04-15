@@ -47,13 +47,10 @@ type Config struct {
 	StartBlockDriftTolerance uint64        // Number of blocks behind LIB that the start block is allowed to be
 	ShutdownDelay            time.Duration // On shutdown, time to wait before actually leaving, to try and drain connections
 	// StartBlockArchiveWaitPeriod time.Time // How long should we wait for an archive search to appear in dmesh before starting anyway
-
-	IndexingRestrictionsJSON string        // optional json-formatted set of indexing restrictions, like a blacklist
-	DfuseHooksActionName     string        // The dfuse Hooks event action name to intercept"
-	LiveIndexesPath          string        // /tmp/live/indexes", "Location for live indexes (ideally a ramdisk)
-	TruncationThreshold      int           //number of available dmesh peers that should serve irreversible blocks before we truncate them from this backend's memory
-	RealtimeTolerance        time.Duration // longest delay to consider this service as real-time(ready) on initialization
-	EnableReadinessProbe     bool          // Creates a health check probe
+	LiveIndexesPath      string        // /tmp/live/indexes", "Location for live indexes (ideally a ramdisk)
+	TruncationThreshold  int           //number of available dmesh peers that should serve irreversible blocks before we truncate them from this backend's memory
+	RealtimeTolerance    time.Duration // longest delay to consider this service as real-time(ready) on initialization
+	EnableReadinessProbe bool          // Creates a health check probe
 
 }
 

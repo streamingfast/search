@@ -31,16 +31,14 @@ import (
 )
 
 type Config struct {
-	Dmesh                    dmeshClient.SearchClient
-	ServiceVersion           string        // dmesh service version (v1)
-	GRPCListenAddr           string        // Address to listen for incoming gRPC requests
-	HttpListenAddr           string        // Address to listen for incoming http requests
-	PublishDuration          time.Duration // longest duration a dmesh peer will not publish
-	IndicesPath              string        // Location for inflight indices
-	BlocksStoreURL           string        // Path to read blocks archives
-	DfuseHooksActionName     string        // The dfuse Hooks event action name to intercept"
-	IndexingRestrictionsJSON string        // optional json-formatted set of indexing restrictions, like a blacklist
-	EnableReadinessProbe     bool          // Creates a health check probe
+	Dmesh                dmeshClient.SearchClient
+	ServiceVersion       string        // dmesh service version (v1)
+	GRPCListenAddr       string        // Address to listen for incoming gRPC requests
+	HttpListenAddr       string        // Address to listen for incoming http requests
+	PublishDuration      time.Duration // longest duration a dmesh peer will not publish
+	IndicesPath          string        // Location for inflight indices
+	BlocksStoreURL       string        // Path to read blocks archives
+	EnableReadinessProbe bool          // Creates a health check probe
 }
 
 type Modules struct {

@@ -37,8 +37,6 @@ type Config struct {
 	IndicesStoreURL                     string // Path to upload the wirtten index shards
 	BlocksStoreURL                      string // Path to read blocks archives
 	BlockstreamAddr                     string // gRPC URL to reach a stream of blocks
-	DfuseHooksActionName                string // The dfuse Hooks event action name to intercept"
-	IndexingRestrictionsJSON            string // optional json-formatted set of indexing restrictions, like a blacklist
 	WritablePath                        string // Writable base path for storing index files
 	ShardSize                           uint64 // Number of blocks to store in a given Bleve index
 	StartBlock                          int64  // Start indexing from block num
@@ -66,10 +64,11 @@ type App struct {
 	readinessProbe pbhealth.HealthClient
 }
 
-func New(config *Config) *App {
+func New(config *Config, modules *Modules) *App {
 	return &App{
 		Shutter: shutter.New(),
 		config:  config,
+		modules: modules,
 	}
 }
 
