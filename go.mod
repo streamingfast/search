@@ -16,6 +16,8 @@ require (
 	github.com/dfuse-io/dmesh v0.0.0-20200407045015-ea4e41ecdb6c
 	github.com/dfuse-io/dmetrics v0.0.0-20200406214800-499fc7b320ab
 	github.com/dfuse-io/dstore v0.0.0-20200407173215-10b5ced43022
+	github.com/dfuse-io/dtracing v0.0.0-20200406213603-4b0c0063b125
+	github.com/dfuse-io/jsonpb v0.0.0-20200406211248-c5cf83f0e0c0
 	github.com/dfuse-io/logging v0.0.0-20200407175011-14021b7a79af
 	github.com/dfuse-io/pbgo v0.0.6-0.20200407175820-b82ffcb63bf6
 	github.com/dfuse-io/shutter v1.4.1-0.20200407040739-f908f9ab727f
