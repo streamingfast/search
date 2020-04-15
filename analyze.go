@@ -26,6 +26,8 @@ import (
 	bsearch "github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/collector"
 	"github.com/blevesearch/bleve/search/query"
+	"github.com/dfuse-io/bstream"
+	"go.uber.org/zap"
 )
 
 func CheckIndexIntegrity(path string, shardSize uint64) error {
@@ -98,8 +100,9 @@ func CheckIndexIntegrity(path string, shardSize uint64) error {
 	sort.Ints(blks)
 
 	if uint64(len(coll.Results())) != shardSize || (highest-lowest) != uint64(shardSize-1) {
-		if lowest == 2 && (highest-lowest) == uint64(shardSize-3) {
-			zlog.Debug("integrity check assuming EOS on first shard, passed")
+
+		if lowest == bstream.GetProtocolFirstBlock && (highest-lowest) == uint64(shardSize-bstream.GetProtocolFirstBlock) {
+			zlog.Debug("integrity check assuming protocol on first shard, passed", zap.Uint64("protocol_first_block", bstream.GetProtocolFirstBlock))
 		} else {
 			errs = addError(fmt.Errorf("integrity check failed, expected %d results, actual %d, lowest: %d, highest: %d, path: %s", shardSize, len(coll.Results()), lowest, highest, path))
 		}
