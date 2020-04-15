@@ -100,11 +100,10 @@ func CheckIndexIntegrity(path string, shardSize uint64) error {
 	sort.Ints(blks)
 
 	if uint64(len(coll.Results())) != shardSize || (highest-lowest) != uint64(shardSize-1) {
-
-		if lowest == bstream.GetProtocolFirstBlock && (highest-lowest) == uint64(shardSize-bstream.GetProtocolFirstBlock) {
+		if lowest == bstream.GetProtocolFirstBlock && (highest-lowest) == uint64(shardSize-bstream.GetProtocolFirstBlock-1) {
 			zlog.Debug("integrity check assuming protocol on first shard, passed", zap.Uint64("protocol_first_block", bstream.GetProtocolFirstBlock))
 		} else {
-			errs = addError(fmt.Errorf("integrity check failed, expected %d results, actual %d, lowest: %d, highest: %d, path: %s", shardSize, len(coll.Results()), lowest, highest, path))
+			errs = addError(fmt.Errorf("integrity check failed, expected %d results, actual %d, lowest: %d, highest: %d, protocol's lowest block: %d, path: %s", shardSize, len(coll.Results()), lowest, highest, bstream.GetProtocolFirstBlock, path))
 		}
 	}
 	for i := 0; i < len(blks)-1; i++ {
