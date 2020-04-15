@@ -1,115 +1,46 @@
-## Development environment
+# dfuse Search
 
-`search` uses Go 1.13's `modules`. Init your `git` with:
-
-    git config --global url.ssh://git@github.com.insteadof https://github.com
-
-and store the `search` repository OUTSIDE of your GOPATH. (otherwise
-you'll need to fiddle with `GO111MODULE=on` but that might conflict
-your other repos)
-
-## Development Setup
-
-First open a port forward to devproxy:
-
-    kubectl -n eth-mainnet port-forward deploy/devproxy 9001
-
-Secondly, open a port forward to dmesh:
-
-    kubectl -n dmesh port-forward svc/etcd-client 2379
+The dfuse Search engine is an innovative, historical and real-time,
+fork-aware general purpose search engine
 
 
-echo '{
-    "query": "action:onblock",
-    "lowBlockNum":  44810200,
-    "highBlockNum": 44810250,
-    "lowBlockUnbounded": false,
-    "highBlockUnbounded": false,
-    "descending": false,
-    "withReversible": true
-}' |  grpcurl -plaintext -d @ localhost:9000 dfuse.search.v1.Router/StreamMatches
+## Features
+
+It can act as a distributed system, composed of real-time and archive
+backends, plus a router addressing the right backends, discovered
+through an `etcd` cluster.
+
+It supports massively parallelized indexing of the chain (put in the
+power, and process 20TB of data in 30 minutes).  It is designed for
+high availability, and scales horizontally.
+
+It feeds from a _dfuse source_, like [dfuse for EOSIO](https://github.com/dfuse-io/dfuse-eosio)
 
 
-### Sample Router Query
+## Installation & Usage
 
-```shell script
-echo '{
-    "query": "action:onblock",
-    "lowBlockNum":  44850200,
-    "highBlockNum": 44850250,
-    "lowBlockUnbounded": false,
-    "highBlockUnbounded": false,
-    "descending": false,
-    "withReversible": true
-}' |  grpcurl -plaintext -d @ localhost:9000 dfuse.search.v1.Router/StreamMatches
-```
+See the different protocol-specific `dfuse` binaries at https://github.com/dfuse-io/dfuse#protocols
 
-```shell script
-echo '{
-    "query": "action:onblock",
-    "lowBlockNum":  84850200,
-    "highBlockNum": 84850250,
-    "lowBlockUnbounded": false,
-    "highBlockUnbounded": false,
-    "descending": false,
-    "withReversible": true
-}' |  grpcurl -plaintext -d @ localhost:9000 dfuse.search.v1.Router/StreamMatches
-```
+Current `search` implementations:
 
-```shell script
-echo '{
-    "query": "action:onblock",
-    "lowBlockNum":  86999950,
-    "highBlockNum": 87000050,
-    "lowBlockUnbounded": false,
-    "highBlockUnbounded": false,
-    "descending": false,
-    "withReversible": true
-}' |  grpcurl -plaintext -d @ localhost:9000 dfuse.search.v1.Router/StreamMatches
-```
-
-```shell script
-echo '{
-    "query": "receiver:newdexpublic action:traderecord",
-    "lowBlockNum":  83206460,
-    "highBlockNum": 83306470,
-    "lowBlockUnbounded": false,
-    "highBlockUnbounded": false,
-    "descending": false,
-    "withReversible": true
-}' |  grpcurl -plaintext -d @ localhost:9000 dfuse.search.v1.Router/StreamMatches
-```
-
-```shell script
-echo '{
-    "query": "action:onblock",
-    "lowBlockNum":  -1,
-    "highBlockNum": -1,
-    "lowBlockUnbounded": false,
-    "highBlockUnbounded": true,
-    "descending": false,
-    "withReversible": true
-}' |  grpcurl -plaintext -d @ localhost:9000 dfuse.search.v1.Router/StreamMatches
-```
-## Customer examples
+* [**dfuse for EOSIO**](https://github.com/dfuse-io/dfuse-eosio)
+* **dfuse for Ethereum**, soon to be open sourced
 
 
-REPLACE `eoscafeblock` for the user
+## Contributing
 
-curl "http://staging-mainnet.eos.dfuse.io/v0/search/transactions?q=action:claimrewards%20data.owner:eoscanadacom&limit=20&start_block=100&block_count=30000000&token=$DFUSE"
+**Issues and PR in this repo related strictly to the core search engine.**
 
-where `q` looks like:
+Report any protocol-specific issues in their
+[respective repositories](https://github.com/dfuse-io/dfuse#protocols)
 
-`action:actionname account:accountname data.somekey:somevalue`
+**Please first refer to the general
+[dfuse contribution guide](https://github.com/dfuse-io/dfuse#contributing)**,
+if you wish to contribute to this code base.
 
-or
+This codebase uses unit tests extensively, please write and run tests.
 
-`(action:issue OR action:transfer) account:eosio`
 
-or
+## License
 
-`account:eosio.token receiver:eosio.token (data.from:eoscanadacom OR data.to:eoscanadacom)`
-
-simulate the `history_api` semantics:
-
-`(auth:ACCOUNT OR receiver:ACCOUNT)`
+[Apache 2.0](LICENSE)
