@@ -1,7 +1,7 @@
-# dfuse Search
+# dfuse Search &middot; [![reference](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://pkg.go.dev/github.com/dfuse-io/search)
 
-The dfuse Search engine is an innovative, historical and real-time,
-fork-aware general purpose search engine
+The dfuse Search engine is an innovative, both historical and real-time,
+fork-aware, blockchain search engine.
 
 
 ## Features
