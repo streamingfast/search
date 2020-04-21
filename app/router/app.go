@@ -30,25 +30,29 @@ import (
 )
 
 type Config struct {
-	Dmesh                dmeshClient.SearchClient
-	BlockmetaAddr        string // Blockmeta endpoint is queried to validate cursors that are passed LIB and forked out
-	GRPCListenAddr       string // Address to listen for incoming gRPC requests
-	HeadDelayTolerance   uint64 // Number of blocks above a backend's head we allow a request query to be served (Live & Router)
-	LibDelayTolerance    uint64 // Number of blocks above a backend's lib we allow a request query to be served (Live & Router)
-	EnableRetry          bool   // Enable the router's attempt to retry a backend search if there is an error. This could have adverse consequences when search through the live
-	EnableReadinessProbe bool   // Creates a health check probe
+	BlockmetaAddr      string // Blockmeta endpoint is queried to validate cursors that are passed LIB and forked out
+	GRPCListenAddr     string // Address to listen for incoming gRPC requests
+	HeadDelayTolerance uint64 // Number of blocks above a backend's head we allow a request query to be served (Live & Router)
+	LibDelayTolerance  uint64 // Number of blocks above a backend's lib we allow a request query to be served (Live & Router)
+	EnableRetry        bool   // Enable the router's attempt to retry a backend search if there is an error. This could have adverse consequences when search through the live
+}
+
+type Modules struct {
+	Dmesh dmeshClient.SearchClient
 }
 
 type App struct {
 	*shutter.Shutter
 	config         *Config
+	modules        *Modules
 	readinessProbe pbhealth.HealthClient
 }
 
-func New(config *Config) *App {
+func New(config *Config, modules *Modules) *App {
 	return &App{
 		Shutter: shutter.New(),
 		config:  config,
+		modules: modules,
 	}
 }
 
@@ -66,18 +70,16 @@ func (a *App) Run() error {
 	blockmetaCli := pbblockmeta.NewBlockIDClient(conn)
 	forksCli := pbblockmeta.NewForksClient(conn)
 
-	router := router.New(a.config.Dmesh, a.config.HeadDelayTolerance, a.config.LibDelayTolerance, blockmetaCli, forksCli, a.config.EnableRetry)
+	router := router.New(a.modules.Dmesh, a.config.HeadDelayTolerance, a.config.LibDelayTolerance, blockmetaCli, forksCli, a.config.EnableRetry)
 
 	a.OnTerminating(router.Shutdown)
 	router.OnTerminated(a.Shutdown)
 
-	if a.config.EnableReadinessProbe {
-		gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
-		if err != nil {
-			return fmt.Errorf("cannot create readiness probe")
-		}
-		a.readinessProbe = pbhealth.NewHealthClient(gs)
+	gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
+	if err != nil {
+		return fmt.Errorf("cannot create readiness probe")
 	}
+	a.readinessProbe = pbhealth.NewHealthClient(gs)
 
 	zlog.Info("launching router")
 	go router.Launch(a.config.GRPCListenAddr)

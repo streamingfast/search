@@ -35,7 +35,6 @@ import (
 )
 
 type Config struct {
-	Dmesh                    dmeshClient.SearchClient
 	ServiceVersion           string        // dmesh service version (v1)
 	TierLevel                uint32        // level of the search tier
 	GRPCListenAddr           string        // Address to listen for incoming gRPC requests
@@ -46,16 +45,15 @@ type Config struct {
 	HeadDelayTolerance       uint64        // Number of blocks above a backend's head we allow a request query to be served (Live & Router)
 	StartBlockDriftTolerance uint64        // Number of blocks behind LIB that the start block is allowed to be
 	ShutdownDelay            time.Duration // On shutdown, time to wait before actually leaving, to try and drain connections
-	// StartBlockArchiveWaitPeriod time.Time // How long should we wait for an archive search to appear in dmesh before starting anyway
-	LiveIndexesPath      string        // /tmp/live/indexes", "Location for live indexes (ideally a ramdisk)
-	TruncationThreshold  int           //number of available dmesh peers that should serve irreversible blocks before we truncate them from this backend's memory
-	RealtimeTolerance    time.Duration // longest delay to consider this service as real-time(ready) on initialization
-	EnableReadinessProbe bool          // Creates a health check probe
+	LiveIndexesPath          string        // /tmp/live/indexes", "Location for live indexes (ideally a ramdisk)
+	TruncationThreshold      int           //number of available dmesh peers that should serve irreversible blocks before we truncate them from this backend's memory
+	RealtimeTolerance        time.Duration // longest delay to consider this service as real-time(ready) on initialization
 
 }
 
 type Modules struct {
 	BlockMapper search.BlockMapper
+	Dmesh       dmeshClient.SearchClient
 }
 
 var LiveAppStartAborted = fmt.Errorf("getting start block aborted by live application")
@@ -95,12 +93,12 @@ func (a *App) Run() error {
 	searchPeer := dmesh.NewSearchHeadPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, 1, a.config.TierLevel, a.config.PublishDuration)
 
 	zlog.Info("publishing search archive peer", zap.String("peer_host", searchPeer.GenericPeer.Host))
-	err = a.config.Dmesh.PublishNow(searchPeer)
+	err = a.modules.Dmesh.PublishNow(searchPeer)
 	if err != nil {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}
 
-	lb := livebackend.New(a.config.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
+	lb := livebackend.New(a.modules.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
 
 	zlog.Info("setting up blockmeta")
 	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)
@@ -109,7 +107,7 @@ func (a *App) Run() error {
 	}
 	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
 
-	startBlock, err := a.getStartBlock(a.config.Dmesh, headinfoCli)
+	startBlock, err := a.getStartBlock(a.modules.Dmesh, headinfoCli)
 	if err != nil {
 		if err == LiveAppStartAborted {
 			return nil
@@ -144,13 +142,11 @@ func (a *App) Run() error {
 	a.OnTerminating(lb.Shutdown)
 	lb.OnTerminated(a.Shutdown)
 
-	if a.config.EnableReadinessProbe {
-		gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
-		if err != nil {
-			return fmt.Errorf("cannot create readiness probe")
-		}
-		a.readinessProbe = pbhealth.NewHealthClient(gs)
+	gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
+	if err != nil {
+		return fmt.Errorf("cannot create readiness probe")
 	}
+	a.readinessProbe = pbhealth.NewHealthClient(gs)
 
 	zlog.Info("launching live search")
 	go func() {

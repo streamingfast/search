@@ -37,13 +37,12 @@ import (
 
 type Config struct {
 	// dmesh configuration
-	Dmesh                   dmeshClient.SearchClient
 	ServiceVersion          string        // dmesh service version (v1)
 	TierLevel               uint32        // level of the search tier
 	GRPCListenAddr          string        // Address to listen for incoming gRPC requests
 	HTTPListenAddr          string        // Address to listen for incoming http requests
 	PublishDuration         time.Duration // longest duration a dmesh peer will not publish
-	EnableMovingTail        bool          // Enable moving tail, requires a relative --start-block (negative number)
+	EnableMovingTail        bool          // Enable moving t`ail, requires a relative --start-block (negative number)
 	IndexesStoreURL         string        // location of indexes to download/open/serve
 	IndexesPath             string        // location where to store the downloaded index files
 	ShardSize               uint64        // indexes shard size
@@ -58,18 +57,24 @@ type Config struct {
 	ShutdownDelay           time.Duration //On shutdown, time to wait before actually leaving, to try and drain connections
 	EnableEmptyResultsCache bool          // Enable roaring-bitmap-based empty results caching
 	MemcacheAddr            string        // Empty results cache's memcache server address
-	EnableReadinessProbe    bool          // Creates a health check probe
 }
+
+type Modules struct {
+	Dmesh dmeshClient.SearchClient
+}
+
 type App struct {
 	*shutter.Shutter
 	config         *Config
+	modules        *Modules
 	readinessProbe pbhealth.HealthClient
 }
 
-func New(config *Config) *App {
+func New(config *Config, modules *Modules) *App {
 	return &App{
 		Shutter: shutter.New(),
 		config:  config,
+		modules: modules,
 	}
 }
 
@@ -90,12 +95,12 @@ func (a *App) Run() error {
 	searchPeer := dmesh.NewSearchArchivePeer(a.config.ServiceVersion, a.config.GRPCListenAddr, a.config.EnableMovingTail, movingHead, a.config.ShardSize, a.config.TierLevel, a.config.PublishDuration)
 
 	zlog.Info("publishing search archive peer", zap.String("peer_host", searchPeer.GenericPeer.Host))
-	err := a.config.Dmesh.PublishNow(searchPeer)
+	err := a.modules.Dmesh.PublishNow(searchPeer)
 	if err != nil {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}
 
-	irrBlockNum := getSearchHighestIrr(a.config.Dmesh.Peers())
+	irrBlockNum := getSearchHighestIrr(a.modules.Dmesh.Peers())
 	resolvedStartBlockNum, err := resolveStartBlock(a.config.StartBlock, a.config.ShardSize, irrBlockNum)
 	if err != nil {
 		return fmt.Errorf("cannot resolve start block num: %w", err)
@@ -123,7 +128,7 @@ func (a *App) Run() error {
 		a.config.ShardSize,
 		indexesStore,
 		cache,
-		a.config.Dmesh,
+		a.modules.Dmesh,
 		searchPeer,
 	)
 
@@ -168,7 +173,7 @@ func (a *App) Run() error {
 		searchPeer.HeadBlockID = lastIrrBlockID
 		searchPeer.TailBlock = resolvedStartBlockNum
 	})
-	err = a.config.Dmesh.PublishNow(searchPeer)
+	err = a.modules.Dmesh.PublishNow(searchPeer)
 	if err != nil {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}
@@ -183,7 +188,7 @@ func (a *App) Run() error {
 	}
 
 	zlog.Info("setting up archive backend")
-	archiveBackend := archive.NewBackend(indexPool, a.config.Dmesh, searchPeer, a.config.GRPCListenAddr, a.config.HTTPListenAddr, a.config.ShutdownDelay)
+	archiveBackend := archive.NewBackend(indexPool, a.modules.Dmesh, searchPeer, a.config.GRPCListenAddr, a.config.HTTPListenAddr, a.config.ShutdownDelay)
 	archiveBackend.SetMaxQueryThreads(a.config.NumQueryThreads)
 
 	if a.config.WarmupFilepath != "" {
@@ -198,13 +203,11 @@ func (a *App) Run() error {
 		return fmt.Errorf("setting ready: %w", err)
 	}
 
-	if a.config.EnableReadinessProbe {
-		gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
-		if err != nil {
-			return fmt.Errorf("cannot create readiness probe")
-		}
-		a.readinessProbe = pbhealth.NewHealthClient(gs)
+	gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
+	if err != nil {
+		return fmt.Errorf("cannot create readiness probe")
 	}
+	a.readinessProbe = pbhealth.NewHealthClient(gs)
 
 	a.OnTerminating(func(e error) {
 		zlog.Info("archive application is terminating, shutting down archive backend")
