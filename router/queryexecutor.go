@@ -19,11 +19,12 @@ import (
 	"fmt"
 	"time"
 
-	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/dfuse-io/derr"
+	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type queryExecutor struct {
@@ -115,19 +116,21 @@ func (q *queryExecutor) Query() error {
 		err := backendQuery.run(q.ctx, q.zlogger, q.senderFilter)
 
 		if err != nil {
-			q.zlogger.Warn("backend query ran with error",
-				zap.String("backend_addr", targetPeer.Addr),
-				zap.Int64("last_block_read", backendQuery.LastBlockRead),
-				zap.Int64("cumulative_matches_count", q.trxCount),
-				zap.Error(err),
-			)
-			if err == ContextCanceled || q.ctx.Err() != nil { // our own ctx done should always cover the contextCanceled error upstream
+			// Our own ctx done should always cover the contextCanceled error upstream
+			if err == ContextCanceled || q.ctx.Err() != nil || status.Code(err) == codes.Canceled {
 				return nil
 			}
 
 			if err == LimitReached {
 				return nil
 			}
+
+			q.zlogger.Warn("backend query ran with error!",
+				zap.String("backend_addr", targetPeer.Addr),
+				zap.Int64("last_block_read", backendQuery.LastBlockRead),
+				zap.Int64("cumulative_matches_count", q.trxCount),
+				zap.Error(err),
+			)
 
 			if q.trxCount > 0 {
 				q.zlogger.Error("backend error but results where already returned ",

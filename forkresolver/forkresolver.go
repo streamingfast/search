@@ -20,6 +20,7 @@ import (
 	"math"
 	"net"
 	"sort"
+	"time"
 
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
@@ -38,6 +39,7 @@ import (
 )
 
 var MaxLookupBlocks = uint64(10000)
+var ShutdownDelayOnFileNotFound = time.Second
 
 type ForkResolver struct {
 	*shutter.Shutter
@@ -227,6 +229,7 @@ func (f *ForkResolver) getBlocksDescending(ctx context.Context, refs []*pbsearch
 	complete := false
 
 	h := bstream.HandlerFunc(func(blk *bstream.Block, obj interface{}) error {
+		fmt.Println("hey got block with", blk)
 		if blk.Num() > highest+MaxLookupBlocks {
 			return derr.Statusf(codes.NotFound, "not found within %d blocks", MaxLookupBlocks)
 		}
@@ -242,8 +245,10 @@ func (f *ForkResolver) getBlocksDescending(ctx context.Context, refs []*pbsearch
 	})
 
 	src := bstream.NewFileSource(f.blocksStore, lowest, 1, nil, h)
-	src.SetNotFoundCallback(func(_ uint64) {
-		src.Shutdown(fmt.Errorf("cannot run forkresolver on missing block files")) // ensure we don't stall here if request was for blocks future
+	src.SetNotFoundCallback(func(missing uint64) { // ensure we don't stall here if request was for blocks future
+		zlog.Debug("missing block file, allowing some time to finish processing existing files before hard failing to prevent stalling", zap.Uint64("missing", missing), zap.Duration("shutdown_delay", ShutdownDelayOnFileNotFound))
+		time.Sleep(ShutdownDelayOnFileNotFound)
+		src.Shutdown(fmt.Errorf("cannot run forkresolver on missing block files, missing %d", missing))
 	})
 	go src.Run()
 
