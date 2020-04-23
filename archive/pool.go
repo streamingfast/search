@@ -454,6 +454,7 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 
 			idx := <-idxCh
 			if idx == nil {
+				zlog.Info("idx channel did not receive an index, skipping index file")
 				// the index channel was closed most likely due a read error
 				return
 			}
@@ -554,7 +555,7 @@ func (p *IndexPool) buildWritableIndexFilePath(baseBlockNum uint64, suffix strin
 
 func (p *IndexPool) openReadOnly(baseBlockNum uint64) (*search.ShardIndex, error) {
 	path := p.getReadOnlyIndexFilePath(baseBlockNum)
-	idxer, err := scorch.NewScorch("eos", map[string]interface{}{
+	idxer, err := scorch.NewScorch("data", map[string]interface{}{
 		"read_only": true,
 		"path":      path,
 	}, nil)

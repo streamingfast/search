@@ -37,7 +37,7 @@ func CheckIndexIntegrity(path string, shardSize uint64) error {
 		return errs
 	}
 
-	idx, err := scorch.NewScorch("eos", map[string]interface{}{
+	idx, err := scorch.NewScorch("data", map[string]interface{}{
 		"read_only": true,
 		"path":      path,
 	}, nil)

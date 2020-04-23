@@ -95,7 +95,7 @@ func (i *PreIndexer) Preprocess(blk *bstream.Block) (interface{}, error) {
 func (i *PreIndexer) openLiveIndex(blockNum uint64, blockID string) (*SingleIndex, *index.AnalysisQueue, error) {
 	path := fmt.Sprintf(filepath.Join(i.liveIndexesPath, "%d-%s-%d.bleve"), blockNum, blockID, time.Now().UnixNano())
 	analysisQueue := index.NewAnalysisQueue(2)
-	idxer, err := scorch.NewScorch("eos", map[string]interface{}{
+	idxer, err := scorch.NewScorch("data", map[string]interface{}{
 		"path":         path,
 		"unsafe_batch": true,
 	}, analysisQueue)

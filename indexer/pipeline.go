@@ -218,12 +218,14 @@ func (pipe *Pipeline) processIrreversibleBlock(blk *bstream.Block, docsList []*d
 		}
 	}
 
-	isShardFirstBlock := blockNum%pipe.shardSize == 0 && pipe.writableLastBlockID.Load() != "" || ((blockNum == 0 || blockNum == 2) && pipe.writableLastBlockID.Load() == "")
+	isFirstShard := (blockNum == bstream.GetProtocolFirstBlock) && pipe.writableLastBlockID.Load() == ""
+	isShardsFirstBlock := blockNum%pipe.shardSize == 0 && pipe.writableLastBlockID.Load() != ""
+
 	if blockNum == pipe.indexer.StopBlockNum {
 		return CompletedError
 	}
 
-	if isShardFirstBlock {
+	if isShardsFirstBlock || isFirstShard {
 		startNumDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_num:%d", blockNum))
 		startIDDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_id:%s", blockID))
 		startTimeDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_time:%s", blockTime))
