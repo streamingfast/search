@@ -176,7 +176,7 @@ func (a *App) Run() error {
 		go truncator.Launch()
 	}
 
-	err = dexer.Bootstrap(uint64(a.config.StartBlock))
+	err = dexer.Bootstrap(uint64(effectiveStartBlockNum))
 	if err != nil {
 		return fmt.Errorf("failed to bootstrap indexer: %w", err)
 	}
