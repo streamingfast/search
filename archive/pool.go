@@ -453,6 +453,10 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 			}
 
 			idx := <-idxCh
+			if idx == nil {
+				// the index channel was closed most likely due a read error
+				return
+			}
 
 			indexCount++
 
@@ -499,10 +503,11 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 			idx, err := p.openReadOnly(indexFileBaseBlockNum)
 			if err != nil {
 				zlog.Error("unable to open read only indexes",
-					zap.Uint64("idx_start_blokc", indexFileBaseBlockNum),
+					zap.Uint64("idx_start_block", indexFileBaseBlockNum),
 					zap.String("index_file", baseFile),
+					zap.Error(err),
 				)
-				close(indexesReady)
+				close(indexReady)
 				return err
 			}
 
