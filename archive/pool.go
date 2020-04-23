@@ -498,6 +498,11 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 		eg.Go(func() error {
 			idx, err := p.openReadOnly(indexFileBaseBlockNum)
 			if err != nil {
+				zlog.Error("unable to open read only indexes",
+					zap.Uint64("idx_start_blokc", indexFileBaseBlockNum),
+					zap.String("index_file", baseFile),
+				)
+				close(indexesReady)
 				return err
 			}
 
@@ -505,7 +510,11 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 			indexBytes := statsMap["CurOnDiskBytes"].(uint64)
 			indexFiles := statsMap["CurOnDiskFiles"].(uint64)
 
-			zlog.Debug("opening initial read-only index from disk", zap.Uint64("base", idx.StartBlock), zap.Uint64("bytes", indexBytes), zap.Uint64("files", indexFiles))
+			zlog.Debug("opening initial read-only index from disk",
+				zap.Uint64("base", idx.StartBlock),
+				zap.Uint64("bytes", indexBytes),
+				zap.Uint64("files", indexFiles),
+			)
 
 			// TODO: warm up the index
 
