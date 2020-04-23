@@ -106,7 +106,7 @@ func (a *App) Run() error {
 		return fmt.Errorf("getting blockmeta headinfo client: %w", err)
 	}
 	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
-
+	zlog.Info("blockemta setup getting start block")
 	startBlock, err := a.getStartBlock(a.modules.Dmesh, headinfoCli)
 	if err != nil {
 		if err == LiveAppStartAborted {
@@ -202,13 +202,13 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 
 		fromArchive := startBlockFromDmesh(dmesh)
 		if fromArchive == nil {
-			zlog.Debug("waiting for archive to appear before starting")
+			zlog.Info("waiting for archive to appear before starting")
 			continue
 		}
 
 		fromStream := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_STREAM)
 		if fromStream == nil {
-			zlog.Debug("waiting for headinfo service to appear before starting")
+			zlog.Info("waiting for headinfo service to appear before starting")
 			continue
 		}
 
@@ -233,7 +233,7 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 		//	zlog.Warn("archive search is late, starting from stream LIB", zap.Uint64("stream_libnum", fromStream.Num()), zap.Uint64("archive_libnum", fromArchive.Num()))
 		//	return fromStream, false, nil
 		//}
-		zlog.Debug("waiting no start-block condition matched",
+		zlog.Info("waiting no start-block condition matched",
 			zap.Uint64("network_head_block_num", fromNetwork.Num()),
 			zap.String("network_head_block_id", fromNetwork.ID()),
 			zap.Uint64("stream_head_block_num", fromStream.Num()),
