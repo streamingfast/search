@@ -18,13 +18,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-
-	"go.uber.org/zap"
 )
 
 func (p *IndexPool) listAllReadOnlyIndexes() ([]string, map[string]bool, error) {
-	zlog.Info("listing all read only indexes", zap.String("indexes_path", p.IndexesPath))
-
 	local, err := filepath.Glob(filepath.Join(p.IndexesPath, "??????????.bleve"))
 	if err != nil {
 		return nil, nil, err

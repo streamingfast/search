@@ -454,8 +454,7 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 
 			idx := <-idxCh
 			if idx == nil {
-				zlog.Info("idx channel did not receive an index, skipping index file")
-				// the index channel was closed most likely due a read error
+				zlog.Error("idx channel did not receive an index, skipping index file, this should not happen")
 				return
 			}
 
@@ -465,7 +464,6 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 			if indexCount%50 == 0 {
 				level = zap.InfoLevel
 			}
-
 			zlog.Check(level, "appending index").Write(zap.Uint64("base", idx.StartBlock))
 			p.AppendReadIndexes(idx)
 		}
@@ -499,23 +497,20 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 			break
 		}
 		indexReady := make(chan *search.ShardIndex)
-		indexesReady <- indexReady
 		eg.Go(func() error {
 			idx, err := p.openReadOnly(indexFileBaseBlockNum)
 			if err != nil {
 				zlog.Error("unable to open read only indexes",
 					zap.Uint64("idx_start_block", indexFileBaseBlockNum),
-					zap.String("index_file", baseFile),
 					zap.Error(err),
 				)
-				close(indexReady)
 				return err
 			}
+			indexesReady <- indexReady
 
 			statsMap := idx.StatsMap()
 			indexBytes := statsMap["CurOnDiskBytes"].(uint64)
 			indexFiles := statsMap["CurOnDiskFiles"].(uint64)
-
 			zlog.Debug("opening initial read-only index from disk",
 				zap.Uint64("base", idx.StartBlock),
 				zap.Uint64("bytes", indexBytes),
