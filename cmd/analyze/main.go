@@ -10,7 +10,7 @@ import (
 	"strconv"
 
 	"github.com/abourget/viperbind"
-	"github.com/blevesearch/bleve/index/scorch"
+	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/logging"
 	"github.com/dfuse-io/search"
@@ -26,8 +26,9 @@ var analyzeCmd = &cobra.Command{Use: "analyze", Short: "Print stats about a sing
 
 func init() {
 	analyzeCmd.PersistentFlags().IntP("shard-size", "s", 0, "Shard size to check integrity for")
-	logging.Register("github.com/dfuse-io/search/cmd/search", &zlog)
-	logging.Set(logging.MustCreateLoggerWithServiceName("search"))
+	analyzeCmd.PersistentFlags().Int("protocol-first-block", 0, "Protocol's lowest block number")
+	logging.Register("github.com/dfuse-io/search/cmd/analyze", &zlog)
+	logging.Set(logging.MustCreateLoggerWithServiceName("search-analyze"))
 }
 
 func main() {
@@ -40,10 +41,13 @@ func main() {
 
 func analyzeRunE(cmd *cobra.Command, args []string) (err error) {
 	shardSize := viper.GetInt("global-shard-size")
+	protocolFirstBlock := viper.GetInt("global-protocol-first-block")
 
 	if shardSize == 0 {
 		return fmt.Errorf("specify --shard-size or -s")
 	}
+
+	bstream.GetProtocolFirstBlock = uint64(protocolFirstBlock)
 
 	bleeveIndexPath := args[0]
 
@@ -52,53 +56,34 @@ func analyzeRunE(cmd *cobra.Command, args []string) (err error) {
 	if match == nil {
 		return fmt.Errorf("unable to retrieve base block from bleve filename")
 	}
+
 	bleeveIndexBaseBlock, err := strconv.ParseUint(match[1], 10, 32)
 	if err != nil {
 		return err
 	}
-
 	zlog.Info("analyzing index",
 		zap.String("index", bleeveIndexPath),
 		zap.Uint64("base_block_num", bleeveIndexBaseBlock),
+		zap.Int("shard_size", shardSize),
+		zap.Uint64("protocol_first_block", bstream.GetProtocolFirstBlock),
 	)
-
-	idx, err := scorch.NewScorch("data", map[string]interface{}{
-		"read_only": true,
-		"path":      bleeveIndexPath,
-	}, nil)
-	if err != nil {
-		return fmt.Errorf("unable to create scorch index: %w", err)
-	}
-	err = idx.Open()
-	if err != nil {
-		return fmt.Errorf("unable to open scorch index: %s", err)
-	}
-
-	shard := &search.ShardIndex{
-		StartBlock: bleeveIndexBaseBlock,
-		EndBlock:   bleeveIndexBaseBlock + uint64(shardSize) - 1,
-		Index:      idx,
-	}
-
-	start, end, err := shard.GetBoundaryBlocks(idx)
-	if err != nil {
-		return fmt.Errorf("unable get boundaries: %s", err)
-	}
-
-	zlog.Info("index boundary information",
-		zap.Time("start_block_time", start.Time),
-		zap.String("start_block_id", start.ID),
-		zap.Uint64("start_block_num", start.Num),
-		zap.Time("end_block_time", end.Time),
-		zap.String("end_block_id", end.ID),
-		zap.Uint64("end_block_num", end.Num),
-	)
-
-	errs := search.CheckIndexIntegrity(bleeveIndexPath, uint64(shardSize))
+	metaInfo, errs := search.CheckIndexIntegrity(bleeveIndexPath, uint64(shardSize))
 	if errs != nil {
 		for _, err := range errs.(search.MultiError) {
-			zlog.Info("integrity checked failed", zap.Error(err))
+			zlog.Info("[ERROR] integrity checked failed", zap.Error(err))
 		}
+	}
+
+	if metaInfo == nil {
+		return nil
+	}
+
+	zlog.Info("index block information", zap.Uint64("lowest_block", metaInfo.LowestBlockNum), zap.Uint64("highest_block", metaInfo.HighestBlockNum))
+	if metaInfo.StartBlock != nil {
+		zlog.Info("index start boundary information", zap.Time("start_block_time", metaInfo.StartBlock.Time), zap.String("start_block_id", metaInfo.StartBlock.ID), zap.Uint64("start_block_num", metaInfo.StartBlock.Num))
+	}
+	if metaInfo.EndBlock != nil {
+		zlog.Info("index end boundary information", zap.Time("end_block_time", metaInfo.EndBlock.Time), zap.String("end_block_id", metaInfo.EndBlock.ID), zap.Uint64("end_block_num", metaInfo.EndBlock.Num))
 	}
 
 	return nil

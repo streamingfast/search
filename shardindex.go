@@ -55,7 +55,8 @@ func newShardIndex(baseBlockNum uint64, shardSize uint64, idx index.Index, pathF
 		if err != nil {
 			return nil, err
 		}
-		if end.ID == "" || start.ID == "" || end.Num == 0 || start.Time.IsZero() || end.Time.IsZero() {
+
+		if !isValidBoundaries(start, end) {
 			return nil, fmt.Errorf("cannot create new shard: missing boundaries info in bleve shard")
 		}
 
@@ -139,6 +140,7 @@ func (s *ShardIndex) GetBoundaryBlocks(idx index.Index) (start *BoundaryBlockInf
 	end = &BoundaryBlockInfo{}
 	results := coll.Results()
 	for _, el := range results {
+		zlog.Info("boundary", zap.String("b", el.ID))
 		parts := strings.Split(el.ID, ":")
 		if len(parts) < 4 {
 			return nil, nil, fmt.Errorf("cannot get boundary blocks, invalid parts")
@@ -218,4 +220,28 @@ func (s *ShardIndex) Close() error {
 	} else {
 		return nil
 	}
+}
+
+func isValidBoundaries(start, end *BoundaryBlockInfo) bool {
+	return isValidStartBoundary(start) && isValidEndBoundary(end)
+}
+
+func isValidStartBoundary(start *BoundaryBlockInfo) bool {
+	if start == nil {
+		return false
+	}
+	if start.ID == "" || start.Time.IsZero() {
+		return false
+	}
+	return true
+}
+
+func isValidEndBoundary(end *BoundaryBlockInfo) bool {
+	if end == nil {
+		return false
+	}
+	if end.ID == "" || end.Num == 0 || end.Time.IsZero() {
+		return false
+	}
+	return true
 }

@@ -218,14 +218,14 @@ func (pipe *Pipeline) processIrreversibleBlock(blk *bstream.Block, docsList []*d
 		}
 	}
 
-	isFirstShard := (blockNum == bstream.GetProtocolFirstBlock) && pipe.writableLastBlockID.Load() == ""
-	isShardsFirstBlock := blockNum%pipe.shardSize == 0 && pipe.writableLastBlockID.Load() != ""
-
 	if blockNum == pipe.indexer.StopBlockNum {
 		return CompletedError
 	}
 
-	if isShardsFirstBlock || isFirstShard {
+	isFirstBlock := blockNum == bstream.GetProtocolFirstBlock
+	isShardsFirstBlock := blockNum%pipe.shardSize == 0
+
+	if isFirstBlock || isShardsFirstBlock {
 		startNumDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_num:%d", blockNum))
 		startIDDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_id:%s", blockID))
 		startTimeDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_time:%s", blockTime))
@@ -332,7 +332,7 @@ func (p *Pipeline) prepareBackgroundUpload(idx *search.ShardIndex) {
 
 	// TODO: Analyze the result.
 
-	if err := search.CheckIndexIntegrity(finalPath, p.shardSize); err != nil {
+	if _, err := search.CheckIndexIntegrity(finalPath, p.shardSize); err != nil {
 		propagateError("index integrity failed", err)
 		return
 	}

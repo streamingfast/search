@@ -452,10 +452,10 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 				return
 			}
 
-			idx := <-idxCh
-			if idx == nil {
+			idx, ok := <-idxCh
+			if !ok {
 				zlog.Error("idx channel did not receive an index, skipping index file, this should not happen")
-				return
+				continue
 			}
 
 			indexCount++
@@ -497,6 +497,7 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 			break
 		}
 		indexReady := make(chan *search.ShardIndex)
+		indexesReady <- indexReady
 		eg.Go(func() error {
 			idx, err := p.openReadOnly(indexFileBaseBlockNum)
 			if err != nil {
@@ -504,9 +505,9 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 					zap.Uint64("idx_start_block", indexFileBaseBlockNum),
 					zap.Error(err),
 				)
+				close(indexReady)
 				return err
 			}
-			indexesReady <- indexReady
 
 			statsMap := idx.StatsMap()
 			indexBytes := statsMap["CurOnDiskBytes"].(uint64)
