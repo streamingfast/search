@@ -101,6 +101,7 @@ func (a *App) Run() error {
 	}
 
 	irrBlockNum := getSearchHighestIrr(a.modules.Dmesh.Peers())
+	zlog.Info("got highest irr block num", zap.Uint64("irr_block_num", irrBlockNum))
 	resolvedStartBlockNum, err := resolveStartBlock(a.config.StartBlock, a.config.ShardSize, irrBlockNum)
 	if err != nil {
 		return fmt.Errorf("cannot resolve start block num: %w", err)
@@ -248,6 +249,7 @@ func (a *App) IsReady() bool {
 }
 
 func resolveStartBlock(startBlock int64, shardSize, irrBlockNum uint64) (uint64, error) {
+	zlog.Info("resolving start block", zap.Int64("start_block", startBlock), zap.Uint64("shard_size", shardSize), zap.Uint64("irr_block_num", irrBlockNum))
 	if startBlock >= 0 {
 		if startBlock%int64(shardSize) != 0 {
 			return 0, fmt.Errorf("start block %d misaligned with shard size %d", startBlock, shardSize)
@@ -264,7 +266,9 @@ func resolveStartBlock(startBlock int64, shardSize, irrBlockNum uint64) (uint64,
 }
 
 func getSearchHighestIrr(peers []*dmesh.SearchPeer) (irrBlock uint64) {
+	zlog.Info("getting highest irr block num", zap.Int("peer_count", len(peers)))
 	for _, peer := range peers {
+		zlog.Info("getting highest irr block num", zap.String("peer", peer.Host), zap.Uint64("irr_block_num", peer.IrrBlock))
 		if peer.IrrBlock > irrBlock {
 			irrBlock = peer.IrrBlock
 		}
