@@ -84,6 +84,14 @@ func (a *App) Run() error {
 		return err
 	}
 
+	zlog.Info("starting dmesh")
+	err := a.modules.Dmesh.Start(context.Background(), []string{
+		"/" + a.config.ServiceVersion + "/search",
+	})
+	if err != nil {
+		return fmt.Errorf("unable to start dmesh client: %w", err)
+	}
+
 	var cache roarcache.Cache
 	if a.config.EnableEmptyResultsCache {
 		zlog.Info("setting up roar cache")
@@ -95,7 +103,7 @@ func (a *App) Run() error {
 	searchPeer := dmesh.NewSearchArchivePeer(a.config.ServiceVersion, a.config.GRPCListenAddr, a.config.EnableMovingTail, movingHead, a.config.ShardSize, a.config.TierLevel, a.config.PublishDuration)
 
 	zlog.Info("publishing search archive peer", zap.String("peer_host", searchPeer.GenericPeer.Host))
-	err := a.modules.Dmesh.PublishNow(searchPeer)
+	err = a.modules.Dmesh.PublishNow(searchPeer)
 	if err != nil {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}

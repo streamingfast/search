@@ -64,6 +64,14 @@ func (a *App) Run() error {
 		return err
 	}
 
+	zlog.Info("starting dmesh")
+	err := a.modules.Dmesh.Start(context.Background(), []string{
+		"/" + a.config.ServiceVersion + "/search",
+	})
+	if err != nil {
+		return fmt.Errorf("unable to start dmesh client: %w", err)
+	}
+
 	blocksStore, err := dstore.NewDBinStore(a.config.BlocksStoreURL)
 	if err != nil {
 		return fmt.Errorf("failed setting up blocks store: %w", err)

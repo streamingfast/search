@@ -17,7 +17,7 @@ require (
 	github.com/dfuse-io/bstream v0.0.0-20200416141423-3cf4bc051382
 	github.com/dfuse-io/derr v0.0.0-20200406214256-c690655246a1
 	github.com/dfuse-io/dgrpc v0.0.0-20200406214416-6271093e544c
-	github.com/dfuse-io/dmesh v0.0.0-20200407045015-ea4e41ecdb6c
+	github.com/dfuse-io/dmesh v0.0.0-20200427143025-f55305fa4b95
 	github.com/dfuse-io/dmetrics v0.0.0-20200406214800-499fc7b320ab
 	github.com/dfuse-io/dstore v0.0.0-20200407173215-10b5ced43022
 	github.com/dfuse-io/logging v0.0.0-20200407175011-14021b7a79af

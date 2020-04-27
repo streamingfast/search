@@ -30,6 +30,7 @@ import (
 )
 
 type Config struct {
+	ServiceVersion     string // dmesh service version (v1)
 	BlockmetaAddr      string // Blockmeta endpoint is queried to validate cursors that are passed LIB and forked out
 	GRPCListenAddr     string // Address to listen for incoming gRPC requests
 	HeadDelayTolerance uint64 // Number of blocks above a backend's head we allow a request query to be served (Live & Router)
@@ -60,6 +61,14 @@ func (a *App) Run() error {
 	zlog.Info("running router app ", zap.Reflect("config", a.config))
 	if err := search.ValidateRegistry(); err != nil {
 		return err
+	}
+
+	zlog.Info("starting dmesh")
+	err := a.modules.Dmesh.Start(context.Background(), []string{
+		"/" + a.config.ServiceVersion + "/search",
+	})
+	if err != nil {
+		return fmt.Errorf("unable to start dmesh client: %w", err)
 	}
 
 	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)

@@ -78,8 +78,16 @@ func (a *App) Run() error {
 		return err
 	}
 
+	zlog.Info("starting dmesh")
+	err := a.modules.Dmesh.Start(context.Background(), []string{
+		"/" + a.config.ServiceVersion + "/search",
+	})
+	if err != nil {
+		return fmt.Errorf("unable to start dmesh client: %w", err)
+	}
+
 	zlog.Info("clearing working directory", zap.Reflect("working_directory", a.config.LiveIndexesPath))
-	err := os.RemoveAll(a.config.LiveIndexesPath)
+	err = os.RemoveAll(a.config.LiveIndexesPath)
 	if err != nil {
 		return fmt.Errorf("unable to clear working directory: %w", err)
 	}
