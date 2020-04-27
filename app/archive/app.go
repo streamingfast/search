@@ -41,7 +41,7 @@ type Config struct {
 	TierLevel               uint32        // level of the search tier
 	GRPCListenAddr          string        // Address to listen for incoming gRPC requests
 	HTTPListenAddr          string        // Address to listen for incoming http requests
-	PublishDuration         time.Duration // longest duration a dmesh peer will not publish
+	PublishInterval         time.Duration // longest duration a dmesh peer will not publish
 	EnableMovingTail        bool          // Enable moving t`ail, requires a relative --start-block (negative number)
 	IndexesStoreURL         string        // location of indexes to download/open/serve
 	IndexesPath             string        // location where to store the downloaded index files
@@ -100,7 +100,7 @@ func (a *App) Run() error {
 
 	zlog.Info("creating search peer")
 	movingHead := a.config.StopBlock == 0
-	searchPeer := dmesh.NewSearchArchivePeer(a.config.ServiceVersion, a.config.GRPCListenAddr, a.config.EnableMovingTail, movingHead, a.config.ShardSize, a.config.TierLevel, a.config.PublishDuration)
+	searchPeer := dmesh.NewSearchArchivePeer(a.config.ServiceVersion, a.config.GRPCListenAddr, a.config.EnableMovingTail, movingHead, a.config.ShardSize, a.config.TierLevel, a.config.PublishInterval)
 
 	zlog.Info("publishing search archive peer", zap.String("peer_host", searchPeer.GenericPeer.Host))
 	err = a.modules.Dmesh.PublishNow(searchPeer)

@@ -34,7 +34,7 @@ type Config struct {
 	ServiceVersion  string        // dmesh service version (v1)
 	GRPCListenAddr  string        // Address to listen for incoming gRPC requests
 	HttpListenAddr  string        // Address to listen for incoming http requests
-	PublishDuration time.Duration // longest duration a dmesh peer will not publish
+	PublishInterval time.Duration // longest duration a dmesh peer will not publish
 	IndicesPath     string        // Location for inflight indices
 	BlocksStoreURL  string        // Path to read blocks archives
 }
@@ -78,7 +78,7 @@ func (a *App) Run() error {
 	}
 
 	zlog.Info("creating search peer")
-	searchPeer := dmesh.NewSearchForkResolverPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, a.config.PublishDuration)
+	searchPeer := dmesh.NewSearchForkResolverPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, a.config.PublishInterval)
 
 	zlog.Info("publishing search archive peer", zap.String("peer_host", searchPeer.GenericPeer.Host))
 	err = a.modules.Dmesh.PublishNow(searchPeer)

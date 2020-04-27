@@ -38,7 +38,7 @@ type Config struct {
 	ServiceVersion           string        // dmesh service version (v1)
 	TierLevel                uint32        // level of the search tier
 	GRPCListenAddr           string        // Address to listen for incoming gRPC requests
-	PublishDuration          time.Duration // longest duration a dmesh peer will not publish
+	PublishInterval          time.Duration // longest duration a dmesh peer will not publish
 	BlockmetaAddr            string        // grpc address to blockmeta to decide if the chain is up-to-date
 	BlocksStoreURL           string        // Path to read blocks archives
 	BlockstreamAddr          string        // gRPC URL to reach a stream of blocks
@@ -98,7 +98,7 @@ func (a *App) Run() error {
 	}
 
 	zlog.Info("creating search peer")
-	searchPeer := dmesh.NewSearchHeadPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, 1, a.config.TierLevel, a.config.PublishDuration)
+	searchPeer := dmesh.NewSearchHeadPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, 1, a.config.TierLevel, a.config.PublishInterval)
 
 	zlog.Info("publishing search archive peer", zap.String("peer_host", searchPeer.GenericPeer.Host))
 	err = a.modules.Dmesh.PublishNow(searchPeer)
