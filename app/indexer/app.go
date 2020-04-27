@@ -125,7 +125,6 @@ func (a *App) Run() error {
 				zap.Uint64("start_block", resolvedStartBlock))
 		}
 
-		indexesStore.SetOperationTimeout(90 * time.Second)
 		effectiveStartBlockNum = dexer.NextBaseBlockAfter(resolvedStartBlock)
 		zlog.Info("indexer live mode",
 			zap.Int64("start_block_num", a.config.StartBlock),

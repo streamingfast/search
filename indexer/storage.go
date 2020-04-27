@@ -15,6 +15,7 @@
 package indexer
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -23,10 +24,12 @@ import (
 )
 
 func (i *Indexer) NextBaseBlockAfter(startBlockNum uint64) (nextStartBlockNum uint64) {
-	i.indexesStore.SetOperationTimeout(450 * time.Second)
 	nextStartBlockNum = startBlockNum
 
-	remote, err := i.indexesStore.ListFiles(fmt.Sprintf("shards-%d/", i.shardSize), ".tmp", 9999999)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	remote, err := i.indexesStore.ListFiles(ctx, fmt.Sprintf("shards-%d/", i.shardSize), ".tmp", 9999999)
 	if err != nil {
 		zlog.Error("listing files from indexes store", zap.Error(err))
 		return

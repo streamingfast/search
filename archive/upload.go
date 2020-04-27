@@ -16,10 +16,12 @@ package archive
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -30,7 +32,10 @@ func (p *IndexPool) Upload(baseIndex uint64, indexPath string) (err error) {
 	pipeRead, pipeWrite := io.Pipe()
 	writeDone := make(chan error)
 	go func() {
-		writeDone <- p.indexesStore.WriteObject(destinationPath, pipeRead) // to Google Storage
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+
+		writeDone <- p.indexesStore.WriteObject(ctx, destinationPath, pipeRead) // to Google Storage
 	}()
 
 	tw := tar.NewWriter(pipeWrite)

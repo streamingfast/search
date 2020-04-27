@@ -16,6 +16,7 @@ package indexer
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -41,13 +42,13 @@ func (p *Pipeline) Upload(baseIndex uint64, indexPath string) (err error) {
 
 	zlog.Info("upload: index", zap.Uint64("base", baseIndex), zap.String("destination_path", destinationPath))
 
-	// TODO: refactor this so that writeObject function on the dstore should take a context
-	p.indexesStore.SetOperationTimeout(dstoreOperationTimeout)
-
 	pipeRead, pipeWrite := io.Pipe()
 	writeDone := make(chan error)
 	go func() {
-		writeDone <- p.indexesStore.WriteObject(destinationPath, pipeRead) // to Google Storage
+		ctx, cancel := context.WithTimeout(context.Background(), dstoreOperationTimeout)
+		defer cancel()
+
+		writeDone <- p.indexesStore.WriteObject(ctx, destinationPath, pipeRead) // to Google Storage
 	}()
 
 	tw := tar.NewWriter(pipeWrite)

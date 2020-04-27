@@ -15,6 +15,7 @@
 package indexer
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"time"
@@ -50,7 +51,10 @@ func (t *Truncator) Launch() {
 func (t *Truncator) attemptTruncation() error {
 	targetBlockNum := t.targetIndex()
 
-	remote, err := t.indexer.indexesStore.ListFiles(fmt.Sprintf("shards-%d/", t.indexer.shardSize), ".tmp", 9999999)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	remote, err := t.indexer.indexesStore.ListFiles(ctx, fmt.Sprintf("shards-%d/", t.indexer.shardSize), ".tmp", 9999999)
 	if err != nil {
 		return fmt.Errorf("listing files from indexes store: %s", err)
 	}
@@ -76,7 +80,7 @@ func (t *Truncator) attemptTruncation() error {
 				zap.Uint64("block_num", fileStartBlock),
 				zap.String("index_filepath", filePath),
 				zap.Uint64("target_block_num", targetBlockNum))
-			err = t.indexer.indexesStore.DeleteObject(filePath)
+			err = t.indexer.indexesStore.DeleteObject(ctx, filePath)
 			if err != nil {
 				return fmt.Errorf("error deleting gstore index file %d - %q", fileStartBlock, filePath)
 			}

@@ -16,6 +16,7 @@ package archive
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -160,7 +161,10 @@ func (p *IndexPool) retrieveIndexFile(indexStartBlockNum uint64, indexBaseFile s
 		zap.String("base_file", indexBaseFile),
 		zap.Uint64("start_block", indexStartBlockNum))
 
-	found, err := p.indexesStore.FileExists(indexPath)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	found, err := p.indexesStore.FileExists(ctx, indexPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed checking existence of index file: %s", err)
 	}
@@ -245,7 +249,10 @@ func (p *IndexPool) syncFromStoragePass(startBlock, stopBlock uint64, maxIndexes
 		return 0, err
 	}
 
-	remote, err := p.indexesStore.ListFiles(fmt.Sprintf("shards-%d/", p.ShardSize), ".tmp", maxIndexes+int(startBlock/p.ShardSize))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	remote, err := p.indexesStore.ListFiles(ctx, fmt.Sprintf("shards-%d/", p.ShardSize), ".tmp", maxIndexes+int(startBlock/p.ShardSize))
 	if err != nil {
 		return 0, err
 	}
@@ -350,7 +357,10 @@ func (p *IndexPool) downloadAndExtract(index int, baseFile string) error {
 
 	zlog.Check(level, "downloading index").Write(zap.String("source", src))
 
-	reader, err := p.indexesStore.OpenObject(src)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	reader, err := p.indexesStore.OpenObject(ctx, src)
 	if err != nil {
 		return fmt.Errorf("opening object %q: %s", src, err)
 	}

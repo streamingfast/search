@@ -14,12 +14,12 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/dfuse-io/bstream v0.0.0-20200416141423-3cf4bc051382
+	github.com/dfuse-io/bstream v0.0.0-20200427161155-5bc64e86c005
 	github.com/dfuse-io/derr v0.0.0-20200406214256-c690655246a1
 	github.com/dfuse-io/dgrpc v0.0.0-20200406214416-6271093e544c
 	github.com/dfuse-io/dmesh v0.0.0-20200407045015-ea4e41ecdb6c
 	github.com/dfuse-io/dmetrics v0.0.0-20200406214800-499fc7b320ab
-	github.com/dfuse-io/dstore v0.0.0-20200407173215-10b5ced43022
+	github.com/dfuse-io/dstore v0.1.0
 	github.com/dfuse-io/logging v0.0.0-20200407175011-14021b7a79af
 	github.com/dfuse-io/pbgo v0.0.6-0.20200416162543-0b634dd507d7
 	github.com/dfuse-io/shutter v1.4.1-0.20200407040739-f908f9ab727f
