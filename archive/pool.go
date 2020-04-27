@@ -462,7 +462,11 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 				return
 			}
 
-			idx := <-idxCh
+			idx, ok := <-idxCh
+			if !ok {
+				zlog.Error("idx channel did not receive an index, skipping index file, this should not happen")
+				continue
+			}
 
 			indexCount++
 
@@ -470,7 +474,6 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 			if indexCount%50 == 0 {
 				level = zap.InfoLevel
 			}
-
 			zlog.Check(level, "appending index").Write(zap.Uint64("base", idx.StartBlock))
 			p.AppendReadIndexes(idx)
 		}
@@ -508,14 +511,22 @@ func (p *IndexPool) ScanOnDiskIndexes(startBlock uint64) error {
 		eg.Go(func() error {
 			idx, err := p.openReadOnly(indexFileBaseBlockNum)
 			if err != nil {
+				zlog.Error("unable to open read only indexes",
+					zap.Uint64("idx_start_block", indexFileBaseBlockNum),
+					zap.Error(err),
+				)
+				close(indexReady)
 				return err
 			}
 
 			statsMap := idx.StatsMap()
 			indexBytes := statsMap["CurOnDiskBytes"].(uint64)
 			indexFiles := statsMap["CurOnDiskFiles"].(uint64)
-
-			zlog.Debug("opening initial read-only index from disk", zap.Uint64("base", idx.StartBlock), zap.Uint64("bytes", indexBytes), zap.Uint64("files", indexFiles))
+			zlog.Debug("opening initial read-only index from disk",
+				zap.Uint64("base", idx.StartBlock),
+				zap.Uint64("bytes", indexBytes),
+				zap.Uint64("files", indexFiles),
+			)
 
 			// TODO: warm up the index
 
@@ -550,7 +561,7 @@ func (p *IndexPool) buildWritableIndexFilePath(baseBlockNum uint64, suffix strin
 
 func (p *IndexPool) openReadOnly(baseBlockNum uint64) (*search.ShardIndex, error) {
 	path := p.getReadOnlyIndexFilePath(baseBlockNum)
-	idxer, err := scorch.NewScorch("eos", map[string]interface{}{
+	idxer, err := scorch.NewScorch("data", map[string]interface{}{
 		"read_only": true,
 		"path":      path,
 	}, nil)

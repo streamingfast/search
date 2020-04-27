@@ -31,18 +31,17 @@ import (
 )
 
 type Config struct {
-	Dmesh                dmeshClient.SearchClient
-	ServiceVersion       string        // dmesh service version (v1)
-	GRPCListenAddr       string        // Address to listen for incoming gRPC requests
-	HttpListenAddr       string        // Address to listen for incoming http requests
-	PublishDuration      time.Duration // longest duration a dmesh peer will not publish
-	IndicesPath          string        // Location for inflight indices
-	BlocksStoreURL       string        // Path to read blocks archives
-	EnableReadinessProbe bool          // Creates a health check probe
+	ServiceVersion  string        // dmesh service version (v1)
+	GRPCListenAddr  string        // Address to listen for incoming gRPC requests
+	HttpListenAddr  string        // Address to listen for incoming http requests
+	PublishInterval time.Duration // longest duration a dmesh peer will not publish
+	IndicesPath     string        // Location for inflight indices
+	BlocksStoreURL  string        // Path to read blocks archives
 }
 
 type Modules struct {
 	BlockMapper search.BlockMapper
+	Dmesh       dmeshClient.SearchClient
 }
 
 type App struct {
@@ -65,36 +64,42 @@ func (a *App) Run() error {
 		return err
 	}
 
+	zlog.Info("starting dmesh")
+	err := a.modules.Dmesh.Start(context.Background(), []string{
+		"/" + a.config.ServiceVersion + "/search",
+	})
+	if err != nil {
+		return fmt.Errorf("unable to start dmesh client: %w", err)
+	}
+
 	blocksStore, err := dstore.NewDBinStore(a.config.BlocksStoreURL)
 	if err != nil {
 		return fmt.Errorf("failed setting up blocks store: %w", err)
 	}
 
 	zlog.Info("creating search peer")
-	searchPeer := dmesh.NewSearchForkResolverPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, a.config.PublishDuration)
+	searchPeer := dmesh.NewSearchForkResolverPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, a.config.PublishInterval)
 
 	zlog.Info("publishing search archive peer", zap.String("peer_host", searchPeer.GenericPeer.Host))
-	err = a.config.Dmesh.PublishNow(searchPeer)
+	err = a.modules.Dmesh.PublishNow(searchPeer)
 	if err != nil {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}
 
 	fr := forkresolver.NewForkResolver(
 		blocksStore,
-		a.config.Dmesh,
+		a.modules.Dmesh,
 		searchPeer,
 		a.config.GRPCListenAddr,
 		a.config.HttpListenAddr,
 		a.modules.BlockMapper,
 		a.config.IndicesPath)
 
-	if a.config.EnableReadinessProbe {
-		gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
-		if err != nil {
-			return fmt.Errorf("cannot create readiness probe")
-		}
-		a.readinessProbe = pbhealth.NewHealthClient(gs)
+	gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
+	if err != nil {
+		return fmt.Errorf("cannot create readiness probe")
 	}
+	a.readinessProbe = pbhealth.NewHealthClient(gs)
 
 	a.OnTerminating(fr.Shutdown)
 	fr.OnTerminated(a.Shutdown)

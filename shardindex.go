@@ -51,10 +51,15 @@ func newShardIndex(baseBlockNum uint64, shardSize uint64, idx index.Index, pathF
 	}
 
 	if idx != nil {
-		start, end, err := getBoundaryBlocks(idx)
+		start, end, err := shard.GetBoundaryBlocks(idx)
 		if err != nil {
 			return nil, err
 		}
+
+		if !isValidBoundaries(start, end) {
+			return nil, fmt.Errorf("cannot create new shard: missing boundaries info in bleve shard")
+		}
+
 		shard.StartBlockTime = start.Time // this MAY be block 1 or 2, instead of expected 0
 		shard.StartBlockID = start.ID     // this MAY be block 1 or 2, instead of expected 0
 		shard.EndBlockID = end.ID
@@ -107,7 +112,7 @@ type BoundaryBlockInfo struct {
 	Time time.Time
 }
 
-func getBoundaryBlocks(idx index.Index) (start *BoundaryBlockInfo, end *BoundaryBlockInfo, err error) {
+func (s *ShardIndex) GetBoundaryBlocks(idx index.Index) (start *BoundaryBlockInfo, end *BoundaryBlockInfo, err error) {
 	reader, err := idx.Reader()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting reader: %s", err)
@@ -135,6 +140,7 @@ func getBoundaryBlocks(idx index.Index) (start *BoundaryBlockInfo, end *Boundary
 	end = &BoundaryBlockInfo{}
 	results := coll.Results()
 	for _, el := range results {
+		zlog.Info("boundary", zap.String("b", el.ID))
 		parts := strings.Split(el.ID, ":")
 		if len(parts) < 4 {
 			return nil, nil, fmt.Errorf("cannot get boundary blocks, invalid parts")
@@ -169,9 +175,6 @@ func getBoundaryBlocks(idx index.Index) (start *BoundaryBlockInfo, end *Boundary
 			}
 			start.Time = val
 		}
-	}
-	if end.ID == "" || start.ID == "" || end.Num == 0 || start.Time.IsZero() || end.Time.IsZero() {
-		return nil, nil, fmt.Errorf("missing boundaries info in bleve shard")
 	}
 
 	return
@@ -217,4 +220,28 @@ func (s *ShardIndex) Close() error {
 	} else {
 		return nil
 	}
+}
+
+func isValidBoundaries(start, end *BoundaryBlockInfo) bool {
+	return isValidStartBoundary(start) && isValidEndBoundary(end)
+}
+
+func isValidStartBoundary(start *BoundaryBlockInfo) bool {
+	if start == nil {
+		return false
+	}
+	if start.ID == "" || start.Time.IsZero() {
+		return false
+	}
+	return true
+}
+
+func isValidEndBoundary(end *BoundaryBlockInfo) bool {
+	if end == nil {
+		return false
+	}
+	if end.ID == "" || end.Num == 0 || end.Time.IsZero() {
+		return false
+	}
+	return true
 }

@@ -35,27 +35,25 @@ import (
 )
 
 type Config struct {
-	Dmesh                    dmeshClient.SearchClient
 	ServiceVersion           string        // dmesh service version (v1)
 	TierLevel                uint32        // level of the search tier
 	GRPCListenAddr           string        // Address to listen for incoming gRPC requests
-	PublishDuration          time.Duration // longest duration a dmesh peer will not publish
+	PublishInterval          time.Duration // longest duration a dmesh peer will not publish
 	BlockmetaAddr            string        // grpc address to blockmeta to decide if the chain is up-to-date
 	BlocksStoreURL           string        // Path to read blocks archives
 	BlockstreamAddr          string        // gRPC URL to reach a stream of blocks
 	HeadDelayTolerance       uint64        // Number of blocks above a backend's head we allow a request query to be served (Live & Router)
 	StartBlockDriftTolerance uint64        // Number of blocks behind LIB that the start block is allowed to be
 	ShutdownDelay            time.Duration // On shutdown, time to wait before actually leaving, to try and drain connections
-	// StartBlockArchiveWaitPeriod time.Time // How long should we wait for an archive search to appear in dmesh before starting anyway
-	LiveIndexesPath      string        // /tmp/live/indexes", "Location for live indexes (ideally a ramdisk)
-	TruncationThreshold  int           //number of available dmesh peers that should serve irreversible blocks before we truncate them from this backend's memory
-	RealtimeTolerance    time.Duration // longest delay to consider this service as real-time(ready) on initialization
-	EnableReadinessProbe bool          // Creates a health check probe
+	LiveIndexesPath          string        // /tmp/live/indexes", "Location for live indexes (ideally a ramdisk)
+	TruncationThreshold      int           //number of available dmesh peers that should serve irreversible blocks before we truncate them from this backend's memory
+	RealtimeTolerance        time.Duration // longest delay to consider this service as real-time(ready) on initialization
 
 }
 
 type Modules struct {
 	BlockMapper search.BlockMapper
+	Dmesh       dmeshClient.SearchClient
 }
 
 var LiveAppStartAborted = fmt.Errorf("getting start block aborted by live application")
@@ -80,8 +78,16 @@ func (a *App) Run() error {
 		return err
 	}
 
+	zlog.Info("starting dmesh")
+	err := a.modules.Dmesh.Start(context.Background(), []string{
+		"/" + a.config.ServiceVersion + "/search",
+	})
+	if err != nil {
+		return fmt.Errorf("unable to start dmesh client: %w", err)
+	}
+
 	zlog.Info("clearing working directory", zap.Reflect("working_directory", a.config.LiveIndexesPath))
-	err := os.RemoveAll(a.config.LiveIndexesPath)
+	err = os.RemoveAll(a.config.LiveIndexesPath)
 	if err != nil {
 		return fmt.Errorf("unable to clear working directory: %w", err)
 	}
@@ -92,15 +98,15 @@ func (a *App) Run() error {
 	}
 
 	zlog.Info("creating search peer")
-	searchPeer := dmesh.NewSearchHeadPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, 1, a.config.TierLevel, a.config.PublishDuration)
+	searchPeer := dmesh.NewSearchHeadPeer(a.config.ServiceVersion, a.config.GRPCListenAddr, 1, a.config.TierLevel, a.config.PublishInterval)
 
 	zlog.Info("publishing search archive peer", zap.String("peer_host", searchPeer.GenericPeer.Host))
-	err = a.config.Dmesh.PublishNow(searchPeer)
+	err = a.modules.Dmesh.PublishNow(searchPeer)
 	if err != nil {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}
 
-	lb := livebackend.New(a.config.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
+	lb := livebackend.New(a.modules.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
 
 	zlog.Info("setting up blockmeta")
 	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)
@@ -108,8 +114,8 @@ func (a *App) Run() error {
 		return fmt.Errorf("getting blockmeta headinfo client: %w", err)
 	}
 	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
-
-	startBlock, err := a.getStartBlock(a.config.Dmesh, headinfoCli)
+	zlog.Info("blockemta setup getting start block")
+	startBlock, err := a.getStartBlock(a.modules.Dmesh, headinfoCli)
 	if err != nil {
 		if err == LiveAppStartAborted {
 			return nil
@@ -144,13 +150,11 @@ func (a *App) Run() error {
 	a.OnTerminating(lb.Shutdown)
 	lb.OnTerminated(a.Shutdown)
 
-	if a.config.EnableReadinessProbe {
-		gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
-		if err != nil {
-			return fmt.Errorf("cannot create readiness probe")
-		}
-		a.readinessProbe = pbhealth.NewHealthClient(gs)
+	gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
+	if err != nil {
+		return fmt.Errorf("cannot create readiness probe")
 	}
+	a.readinessProbe = pbhealth.NewHealthClient(gs)
 
 	zlog.Info("launching live search")
 	go func() {
@@ -206,13 +210,13 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 
 		fromArchive := startBlockFromDmesh(dmesh)
 		if fromArchive == nil {
-			zlog.Debug("waiting for archive to appear before starting")
+			zlog.Info("waiting for archive to appear before starting")
 			continue
 		}
 
 		fromStream := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_STREAM)
 		if fromStream == nil {
-			zlog.Debug("waiting for headinfo service to appear before starting")
+			zlog.Info("waiting for headinfo service to appear before starting")
 			continue
 		}
 
@@ -237,7 +241,7 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 		//	zlog.Warn("archive search is late, starting from stream LIB", zap.Uint64("stream_libnum", fromStream.Num()), zap.Uint64("archive_libnum", fromArchive.Num()))
 		//	return fromStream, false, nil
 		//}
-		zlog.Debug("waiting no start-block condition matched",
+		zlog.Info("waiting no start-block condition matched",
 			zap.Uint64("network_head_block_num", fromNetwork.Num()),
 			zap.String("network_head_block_id", fromNetwork.ID()),
 			zap.Uint64("stream_head_block_num", fromStream.Num()),

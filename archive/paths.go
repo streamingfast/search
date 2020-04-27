@@ -39,7 +39,6 @@ func (p *IndexPool) listAllReadOnlyIndexes() ([]string, map[string]bool, error) 
 	}
 
 	sort.Strings(sorted)
-
 	return sorted, seen, nil
 }
 

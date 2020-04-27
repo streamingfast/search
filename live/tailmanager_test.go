@@ -23,6 +23,7 @@ import (
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/search"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTailManagerTruncateTwice(t *testing.T) {
@@ -208,9 +209,11 @@ func TestTailManagerTruncateTwice(t *testing.T) {
 			if test.lowestTailLock != 0 {
 				tl.TailLock(test.lowestTailLock)
 			}
+			mesh, err := dmeshClient.New("local://")
+			require.NoError(t, err)
 			tm := &TailManager{
 				tailLock:            tl,
-				dmeshClient:         dmeshClient.NewLocalClient(),
+				dmeshClient:         mesh,
 				searchPeer:          searchPeer,
 				getSearchPeers:      getSearchPeersFunc,
 				buffer:              buffer,

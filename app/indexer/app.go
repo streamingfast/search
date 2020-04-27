@@ -48,7 +48,6 @@ type Config struct {
 	EnableUpload                        bool   // Upload merged indexes to the --indexes-store
 	DeleteAfterUpload                   bool   // Delete local indexes after uploading them
 	EnableIndexTruncation               bool   // Enable index truncation, requires a relative --start-block (negative number)
-	EnableReadinessProbe                bool   // Creates a health check probe
 }
 
 type Modules struct {
@@ -176,18 +175,16 @@ func (a *App) Run() error {
 		go truncator.Launch()
 	}
 
-	err = dexer.Bootstrap(uint64(a.config.StartBlock))
+	err = dexer.Bootstrap(uint64(effectiveStartBlockNum))
 	if err != nil {
 		return fmt.Errorf("failed to bootstrap indexer: %w", err)
 	}
 
-	if a.config.EnableReadinessProbe {
-		gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
-		if err != nil {
-			return fmt.Errorf("cannot create readiness probe")
-		}
-		a.readinessProbe = pbhealth.NewHealthClient(gs)
+	gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)
+	if err != nil {
+		return fmt.Errorf("cannot create readiness probe")
 	}
+	a.readinessProbe = pbhealth.NewHealthClient(gs)
 
 	a.OnTerminating(dexer.Shutdown)
 	dexer.OnTerminated(a.Shutdown)
