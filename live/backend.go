@@ -83,7 +83,6 @@ func (b *LiveBackend) startServer(listenAddr string) {
 	}
 
 	s := dgrpc.NewServer(dgrpc.WithLogger(zlog))
-	go metrics.ServeMetrics()
 	pb.RegisterBackendServer(s, b)
 	pbhead.RegisterStreamingHeadInfoServer(s, b)
 	pbhead.RegisterHeadInfoServer(s, b)

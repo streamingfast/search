@@ -205,7 +205,6 @@ func (r *Router) startServer(listenAddr string) {
 	}
 
 	s := dgrpc.NewServer(dgrpc.WithLogger(zlog))
-	go metrics.ServeMetrics()
 	pb.RegisterRouterServer(s, r)
 	pbhealth.RegisterHealthServer(s, r)
 

@@ -22,10 +22,12 @@ import (
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
+	"github.com/dfuse-io/dmetrics"
 	"github.com/dfuse-io/dstore"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/forkresolver"
+	"github.com/dfuse-io/search/metrics"
 	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
 )
@@ -60,6 +62,9 @@ func New(config *Config, modules *Modules) *App {
 
 func (a *App) Run() error {
 	zlog.Info("running forkresolver app ", zap.Reflect("config", a.config))
+
+	dmetrics.Register(metrics.MetricSet)
+
 	if err := search.ValidateRegistry(); err != nil {
 		return err
 	}

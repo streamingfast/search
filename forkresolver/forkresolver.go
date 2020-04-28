@@ -32,7 +32,6 @@ import (
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
-	"github.com/dfuse-io/search/metrics"
 	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -82,7 +81,6 @@ func (f *ForkResolver) startGrpcServer() {
 	}
 
 	s := dgrpc.NewServer(dgrpc.WithLogger(zlog))
-	go metrics.ServeMetrics()
 	pbsearch.RegisterForkResolverServer(s, f)
 	pbhealth.RegisterHealthServer(s, f)
 

@@ -21,6 +21,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/dfuse-io/dmetrics"
+
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
@@ -80,6 +82,9 @@ func New(config *Config, modules *Modules) *App {
 
 func (a *App) Run() error {
 	zlog.Info("running archive app ", zap.Reflect("config", a.config))
+
+	dmetrics.Register(metrics.MetricSet)
+
 	if err := search.ValidateRegistry(); err != nil {
 		return err
 	}

@@ -19,6 +19,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dfuse-io/dmetrics"
+	"github.com/dfuse-io/search/metrics"
+
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
@@ -73,6 +76,9 @@ func New(config *Config, modules *Modules) *App {
 
 func (a *App) Run() error {
 	zlog.Info("running indexer app ", zap.Reflect("config", a.config))
+
+	dmetrics.Register(metrics.MetricSet)
+
 	if err := search.ValidateRegistry(); err != nil {
 		return err
 	}

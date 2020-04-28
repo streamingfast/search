@@ -18,39 +18,31 @@ import (
 	"github.com/dfuse-io/dmetrics"
 )
 
-var metrics = dmetrics.NewSet()
+var MetricSet = dmetrics.NewSet()
 
 // Archive
-var ActiveOpenedIndexCount = metrics.NewGauge("active_opened_index_count")
-var RoarCacheHitIndexesSkipped = metrics.NewCounter("total_indexes_skipped_because_of_roar_cache", "Number of indexes that were skipped because they were informed by roaring bitmaps that a given query yields no results in that index")
-var IndexesScanned = metrics.NewCounter("total_indexes_scanned", "Number of indexes that were scanned in a distinct query")
+var ActiveOpenedIndexCount = MetricSet.NewGauge("active_opened_index_count")
+var RoarCacheHitIndexesSkipped = MetricSet.NewCounter("total_indexes_skipped_because_of_roar_cache", "Number of indexes that were skipped because they were informed by roaring bitmaps that a given query yields no results in that index")
+var IndexesScanned = MetricSet.NewCounter("total_indexes_scanned", "Number of indexes that were scanned in a distinct query")
 
-var RoarCacheMiss = metrics.NewCounter("roar_cache_misses", "Number of roar cache miss")
-var RoarCacheHit = metrics.NewCounter("roar_cache_hits", "Number of roar cache hits")
-var RoarCacheFail = metrics.NewCounter("roar_cache_failures", "Number of roar cache lookup failures")
+var RoarCacheMiss = MetricSet.NewCounter("roar_cache_misses", "Number of roar cache miss")
+var RoarCacheHit = MetricSet.NewCounter("roar_cache_hits", "Number of roar cache hits")
+var RoarCacheFail = MetricSet.NewCounter("roar_cache_failures", "Number of roar cache lookup failures")
 
 // Indexer
-var CatchUpBlocksPerSecond = metrics.NewGauge("catch_up_blocks_per_second")
-var CatchUpDocsPerSecond = metrics.NewGauge("catch_up_docs_per_second")
-var LastWrittenBlockNumber = metrics.NewGauge("last_written_block_number", "%s (should be LIB)")
+var CatchUpBlocksPerSecond = MetricSet.NewGauge("catch_up_blocks_per_second")
+var CatchUpDocsPerSecond = MetricSet.NewGauge("catch_up_docs_per_second")
+var LastWrittenBlockNumber = MetricSet.NewGauge("last_written_block_number", "%s (should be LIB)")
 
 // Router
-var DeletedPeerCount = metrics.NewCounter("deleted_peer_count")
-var InflightRequestCount = metrics.NewGauge("inflight_request_count")
-var ErrorRequestCount = metrics.NewCounter("error_request_count")
-var TotalRequestCount = metrics.NewCounter("total_request_count")
-var ErrorBackendCount = metrics.NewCounter("error_backend_count")
-var FullContiguousBlockRange = metrics.NewGauge("full_contiguous_block_range")
-var IRRBlockNumber = metrics.NewGauge("irr_block_number", "Current %s (from Dmesh)")
+var DeletedPeerCount = MetricSet.NewCounter("deleted_peer_count")
+var InflightRequestCount = MetricSet.NewGauge("inflight_request_count")
+var ErrorRequestCount = MetricSet.NewCounter("error_request_count")
+var TotalRequestCount = MetricSet.NewCounter("total_request_count")
+var ErrorBackendCount = MetricSet.NewCounter("error_backend_count")
+var FullContiguousBlockRange = MetricSet.NewGauge("full_contiguous_block_range")
+var IRRBlockNumber = MetricSet.NewGauge("irr_block_number", "Current %s (from Dmesh)")
 
 // Common
-var ActiveQueryCount = metrics.NewGauge("active_query_count")
-var TailBlockNumber = metrics.NewGauge("tail_block_number", "Current %s (from Dmesh)")
-
-func ServeMetrics() {
-	dmetrics.Serve(":9102")
-}
-
-func init() {
-	metrics.Register()
-}
+var ActiveQueryCount = MetricSet.NewGauge("active_query_count")
+var TailBlockNumber = MetricSet.NewGauge("tail_block_number", "Current %s (from Dmesh)")

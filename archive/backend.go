@@ -29,7 +29,6 @@ import (
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
-	"github.com/dfuse-io/search/metrics"
 	pmetrics "github.com/dfuse-io/search/metrics"
 	"github.com/dfuse-io/shutter"
 	"github.com/gorilla/mux"
@@ -126,7 +125,7 @@ func (b *ArchiveBackend) startServer() {
 	}
 
 	s := dgrpc.NewServer(dgrpc.WithLogger(zlog))
-	go metrics.ServeMetrics()
+
 	pbsearch.RegisterBackendServer(s, b)
 	pbhead.RegisterStreamingHeadInfoServer(s, b)
 	pbhealth.RegisterHealthServer(s, b)
