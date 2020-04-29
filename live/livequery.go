@@ -80,7 +80,7 @@ func (q *LiveQuery) checkBoundaries(first, irr, head, headDelayTolerance uint64)
 			return fmt.Errorf("ascending requested lower boundary (%d) lower than available tail block (%d) on this node", q.Request.LowBlockNum, first)
 		}
 
-		if (virtHead + headDelayTolerance) <= q.Request.LowBlockNum {
+		if (virtHead + headDelayTolerance) < q.Request.LowBlockNum {
 			return fmt.Errorf("ascending requested lower boundary (%d) higher than virtual head (%d) with head delay tolerance (%d)", q.Request.LowBlockNum, virtHead, headDelayTolerance)
 		}
 
