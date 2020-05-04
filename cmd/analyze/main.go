@@ -70,7 +70,7 @@ func analyzeRunE(cmd *cobra.Command, args []string) (err error) {
 	metaInfo, errs := search.CheckIndexIntegrity(bleeveIndexPath, uint64(shardSize))
 	if errs != nil {
 		for _, err := range errs.(search.MultiError) {
-			zlog.Info("[ERROR] integrity checked failed", zap.Error(err))
+			zlog.Warn("[ERROR] integrity checked failed", zap.Error(err))
 		}
 	}
 

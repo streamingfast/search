@@ -140,7 +140,7 @@ func (s *ShardIndex) GetBoundaryBlocks(idx index.Index) (start *BoundaryBlockInf
 	end = &BoundaryBlockInfo{}
 	results := coll.Results()
 	for _, el := range results {
-		zlog.Info("boundary", zap.String("b", el.ID))
+		zlog.Debug("boundary", zap.String("b", el.ID))
 		parts := strings.Split(el.ID, ":")
 		if len(parts) < 4 {
 			return nil, nil, fmt.Errorf("cannot get boundary blocks, invalid parts")
