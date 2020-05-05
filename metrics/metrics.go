@@ -16,33 +16,52 @@ package metrics
 
 import (
 	"github.com/dfuse-io/dmetrics"
+	"sync"
 )
 
-var MetricSet = dmetrics.NewSet()
+var mutex sync.Mutex
 
-// Archive
-var ActiveOpenedIndexCount = MetricSet.NewGauge("active_opened_index_count")
-var RoarCacheHitIndexesSkipped = MetricSet.NewCounter("total_indexes_skipped_because_of_roar_cache", "Number of indexes that were skipped because they were informed by roaring bitmaps that a given query yields no results in that index")
-var IndexesScanned = MetricSet.NewCounter("total_indexes_scanned", "Number of indexes that were scanned in a distinct query")
+func Register(sets ...*dmetrics.Set) {
+	mutex.Lock()
+	defer mutex.Unlock()
 
-var RoarCacheMiss = MetricSet.NewCounter("roar_cache_misses", "Number of roar cache miss")
-var RoarCacheHit = MetricSet.NewCounter("roar_cache_hits", "Number of roar cache hits")
-var RoarCacheFail = MetricSet.NewCounter("roar_cache_failures", "Number of roar cache lookup failures")
-
-// Indexer
-var CatchUpBlocksPerSecond = MetricSet.NewGauge("catch_up_blocks_per_second")
-var CatchUpDocsPerSecond = MetricSet.NewGauge("catch_up_docs_per_second")
-var LastWrittenBlockNumber = MetricSet.NewGauge("last_written_block_number", "%s (should be LIB)")
-
-// Router
-var DeletedPeerCount = MetricSet.NewCounter("deleted_peer_count")
-var InflightRequestCount = MetricSet.NewGauge("inflight_request_count")
-var ErrorRequestCount = MetricSet.NewCounter("error_request_count")
-var TotalRequestCount = MetricSet.NewCounter("total_request_count")
-var ErrorBackendCount = MetricSet.NewCounter("error_backend_count")
-var FullContiguousBlockRange = MetricSet.NewGauge("full_contiguous_block_range")
-var IRRBlockNumber = MetricSet.NewGauge("irr_block_number", "Current %s (from Dmesh)")
+	// Common set will be registered only once (soft gate downtstream), lazily on first Run() passed mutex
+	dmetrics.Register(CommonMetricSet)
+	// App-specific metrics
+	dmetrics.Register(sets...)
+}
 
 // Common
-var ActiveQueryCount = MetricSet.NewGauge("active_query_count")
-var TailBlockNumber = MetricSet.NewGauge("tail_block_number", "Current %s (from Dmesh)")
+var CommonMetricSet = dmetrics.NewSet()
+var ActiveQueryCount = CommonMetricSet.NewGauge("active_query_count")
+var TailBlockNumber = CommonMetricSet.NewGauge("tail_block_number", "Current %s (from Dmesh)")
+
+// LiveResolver
+var LiveMetricSet = dmetrics.NewSet()
+
+// ForkResolver
+var ForkResolverMetricSet = dmetrics.NewSet()
+
+// Archive
+var ArchiveMetricsSet = dmetrics.NewSet()
+var ActiveOpenedIndexCount = ArchiveMetricsSet.NewGauge("active_opened_index_count")
+var RoarCacheHitIndexesSkipped = ArchiveMetricsSet.NewCounter("total_indexes_skipped_because_of_roar_cache", "Number of indexes that were skipped because they were informed by roaring bitmaps that a given query yields no results in that index")
+var IndexesScanned = ArchiveMetricsSet.NewCounter("total_indexes_scanned", "Number of indexes that were scanned in a distinct query")
+var RoarCacheMiss = ArchiveMetricsSet.NewCounter("roar_cache_misses", "Number of roar cache miss")
+var RoarCacheHit = ArchiveMetricsSet.NewCounter("roar_cache_hits", "Number of roar cache hits")
+var RoarCacheFail = ArchiveMetricsSet.NewCounter("roar_cache_failures", "Number of roar cache lookup failures")
+
+// Indexer
+var IndexerMetricSet = dmetrics.NewSet()
+var CatchUpBlocksPerSecond = IndexerMetricSet.NewGauge("catch_up_blocks_per_second")
+var CatchUpDocsPerSecond = IndexerMetricSet.NewGauge("catch_up_docs_per_second")
+var LastWrittenBlockNumber = IndexerMetricSet.NewGauge("last_written_block_number", "%s (should be LIB)")
+
+// Router
+var RouterMetricSet = dmetrics.NewSet()
+var InflightRequestCount = RouterMetricSet.NewGauge("inflight_request_count")
+var ErrorRequestCount = RouterMetricSet.NewCounter("error_request_count")
+var TotalRequestCount = RouterMetricSet.NewCounter("total_request_count")
+var ErrorBackendCount = RouterMetricSet.NewCounter("error_backend_count")
+var FullContiguousBlockRange = RouterMetricSet.NewGauge("full_contiguous_block_range")
+var IRRBlockNumber = RouterMetricSet.NewGauge("irr_block_number", "Current %s (from Dmesh)")

@@ -22,7 +22,6 @@ import (
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
-	"github.com/dfuse-io/dmetrics"
 	"github.com/dfuse-io/dstore"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
@@ -63,7 +62,7 @@ func New(config *Config, modules *Modules) *App {
 func (a *App) Run() error {
 	zlog.Info("running forkresolver app ", zap.Reflect("config", a.config))
 
-	dmetrics.Register(metrics.MetricSet)
+	metrics.Register(metrics.ForkResolverMetricSet)
 
 	if err := search.ValidateRegistry(); err != nil {
 		return err

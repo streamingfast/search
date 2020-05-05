@@ -19,14 +19,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dfuse-io/dmetrics"
 	"github.com/dfuse-io/search/metrics"
 
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
-	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
+	"github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
+	"github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/indexer"
@@ -77,7 +76,7 @@ func New(config *Config, modules *Modules) *App {
 func (a *App) Run() error {
 	zlog.Info("running indexer app ", zap.Reflect("config", a.config))
 
-	dmetrics.Register(metrics.MetricSet)
+	metrics.Register(metrics.IndexerMetricSet)
 
 	if err := search.ValidateRegistry(); err != nil {
 		return err

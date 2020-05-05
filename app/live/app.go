@@ -20,7 +20,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/dfuse-io/dmetrics"
 	"github.com/dfuse-io/search/metrics"
 
 	"github.com/dfuse-io/bstream"
@@ -78,7 +77,7 @@ func New(config *Config, modules *Modules) *App {
 func (a *App) Run() error {
 	zlog.Info("running live app ", zap.Reflect("config", a.config))
 
-	dmetrics.Register(metrics.MetricSet)
+	metrics.Register(metrics.LiveMetricSet)
 
 	if err := search.ValidateRegistry(); err != nil {
 		return err
