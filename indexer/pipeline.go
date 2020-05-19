@@ -269,12 +269,10 @@ func (p *Pipeline) newWritableIndex(baseBlockNum uint64) (*search.ShardIndex, er
 
 	finalTargetPath := shardIndex.WritablePath("")
 	builderOptions := map[string]interface{}{
-		"forceSegmentType": "zap",
-		"forceSegmentVersion": 12,
 		"path":            finalTargetPath,
 		"buildPathPrefix": buildingPath,
-		"batchSize":       scorch.DefaultBuilderBatchSize,
-		"mergeMax":        scorch.DefaultBuilderMergeMax,
+		"batchSize":       scorch.DefaultBatchSize,
+		"mergeMax":        scorch.DefaultMergeMax,
 	}
 	shardIndex.IndexTargetPath = finalTargetPath
 	shardIndex.IndexBuilder, err = scorch.NewBuilder(builderOptions)
