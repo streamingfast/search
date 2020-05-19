@@ -34,6 +34,8 @@ import (
 
 func CheckIndexIntegrity(path string, shardSize uint64) (*indexMetaInfo, error) {
 	idx, err := scorch.NewScorch("data", map[string]interface{}{
+		"forceSegmentType": "zap",
+		"forceSegmentVersion": 12,
 		"read_only": true,
 		"path":      path,
 	}, nil)
