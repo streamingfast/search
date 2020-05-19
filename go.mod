@@ -7,7 +7,8 @@ require (
 	github.com/abourget/viperbind v0.1.0
 	github.com/alecthomas/participle v0.2.0
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
-	github.com/blevesearch/bleve v1.0.8-0.20200519143657-7e28173364fb
+	github.com/blevesearch/bleve v0.8.0
+	github.com/blevesearch/blevex v0.0.0-20190916190636-152f0fe5c040 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
@@ -22,6 +23,7 @@ require (
 	github.com/dfuse-io/logging v0.0.0-20200407175011-14021b7a79af
 	github.com/dfuse-io/pbgo v0.0.6-0.20200416162543-0b634dd507d7
 	github.com/dfuse-io/shutter v1.4.1-0.20200407040739-f908f9ab727f
+	github.com/edsrzf/mmap-go v0.0.0-20160512033002-935e0e8a636c // indirect
 	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c // indirect
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
@@ -44,5 +46,7 @@ require (
 	google.golang.org/appengine v1.6.5
 	google.golang.org/grpc v1.26.0
 )
+
+replace github.com/blevesearch/bleve => github.com/fproulx-eoscanada/bleve v0.0.0-20190823192325-db63d5f16d8b
 
 go 1.13
