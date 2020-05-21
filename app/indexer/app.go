@@ -50,8 +50,8 @@ type Config struct {
 }
 
 type Modules struct {
-	BlockMapper         search.BlockMapper
-	StartBlockResolvers []bstream.StartBlockResolver
+	BlockMapper        search.BlockMapper
+	StartBlockResolver bstream.StartBlockResolver
 }
 
 var IndexerAppStartAborted = fmt.Errorf("getting irr block aborted by indexer application")
@@ -106,16 +106,12 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 		targetStartBlock = dexer.NextBaseBlockAfter(targetStartBlock) // skip already processed indexes
 	}
 
-	filesourceStartBlock, previousIrreversibleID, err = bstream.ParallelResolveStartBlock(ctx, targetStartBlock, a.modules.StartBlockResolvers, -1)
+	filesourceStartBlock, previousIrreversibleID, err = a.modules.StartBlockResolver.Resolve(ctx, targetStartBlock)
 	return
 }
 
 func (a *App) Run() error {
 	zlog.Info("running indexer app ", zap.Reflect("config", a.config))
-
-	if len(a.modules.StartBlockResolvers) == 0 {
-		return fmt.Errorf("cannot run indexer without a start block resolver module")
-	}
 
 	metrics.Register(metrics.IndexerMetricSet)
 
