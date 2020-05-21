@@ -106,14 +106,16 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 		targetStartBlock = dexer.NextBaseBlockAfter(targetStartBlock) // skip already processed indexes
 	}
 
-	for _, resolver := range a.modules.StartBlockResolvers {
-		filesourceStartBlock, previousIrreversibleID, err = resolver.Resolve(ctx, targetStartBlock)
-		if err == nil {
-			return
+	for {
+		for _, resolver := range a.modules.StartBlockResolvers {
+			filesourceStartBlock, previousIrreversibleID, err = resolver.Resolve(ctx, targetStartBlock)
+			if err == nil {
+				return
+			}
+			zlog.Info("cannot resolve start block. Retrying forever", zap.Error(err))
 		}
+		time.Sleep(time.Second)
 	}
-	err = fmt.Errorf("cannot resolve start block: %w", err)
-	return // will return the last error from modules
 }
 
 func (a *App) Run() error {
