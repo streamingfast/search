@@ -118,8 +118,8 @@ github.com/cznic/strutil v0.0.0-20181122101858-275e90344537/go.mod h1:AHHPPPXTw0
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dfuse-io/bstream v0.0.0-20200521184854-a6f7d0b9b99b h1:8WQfK3uvjlKhrsn9aZMSDRSTjJRU/4v7nUIfxqkGajk=
-github.com/dfuse-io/bstream v0.0.0-20200521184854-a6f7d0b9b99b/go.mod h1:BHEANTxf3ORDdJdGmQ+lJyX8JqjUH45WGBvBKBaMLQg=
+github.com/dfuse-io/bstream v0.0.0-20200521210312-6605c52f17f2 h1:xnfbuJubfkPVQilL/q8dKaJMgvRLaZF3Ausdem68D6M=
+github.com/dfuse-io/bstream v0.0.0-20200521210312-6605c52f17f2/go.mod h1:BHEANTxf3ORDdJdGmQ+lJyX8JqjUH45WGBvBKBaMLQg=
 github.com/dfuse-io/dbin v0.0.0-20200406215642-ec7f22e794eb h1:yrE/Ncb9PAjdN7w5Ixx47Oy1kQQdluBfuv7c8D9UaPQ=
 github.com/dfuse-io/dbin v0.0.0-20200406215642-ec7f22e794eb/go.mod h1:yMMhO8IdiSS+R/961s9Ac1oyAx3MdAO0OneSZ9Wt/Wg=
 github.com/dfuse-io/derr v0.0.0-20200406214256-c690655246a1 h1:ejixSugMZ417KvnJhk4cZJu/VW4ql0AlL+seE4jh1Kc=

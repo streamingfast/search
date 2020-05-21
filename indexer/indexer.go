@@ -113,26 +113,23 @@ func (i *Indexer) Bootstrap(startBlockNum uint64) error {
 
 func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum uint64, previousIrreversibleID string, enableUpload bool, deleteAfterUpload bool) {
 	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
-	firstSourceFactoryCall := true
 
 	sf := bstream.SourceFromRefFactory(func(startBlockRef bstream.BlockRef, h bstream.Handler) bstream.Source {
 		pipe.SetCatchUpMode()
 
-		var gate bstream.Handler
+		var handler bstream.Handler
 		var jsOptions []bstream.JoiningSourceOption
+		var startBlockNum uint64
 
-		if startBlockRef.ID() == "" {
-			startBlockRef = bstream.NewBlockRef(previousIrreversibleID, fileSourceStartBlockNum)
-			gate = bstream.NewBlockNumGate(targetStartBlockNum, bstream.GateInclusive, h)
+		firstCall := startBlockRef.ID() == ""
+		if firstCall {
+			startBlockNum = fileSourceStartBlockNum
+			handler = h
 		} else {
-			gateType := bstream.GateExclusive // We never want to process the same block twice.
-			if firstSourceFactoryCall {
-				gateType = bstream.GateInclusive
-			}
-			gate = bstream.NewBlockIDGate(startBlockRef.ID(), gateType, h)
+			startBlockNum = startBlockRef.Num()
+			handler = bstream.NewBlockIDGate(startBlockRef.ID(), bstream.GateExclusive, h)
 			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockID(startBlockRef.ID()))
 		}
-		firstSourceFactoryCall = false
 
 		liveSourceFactory := bstream.SourceFactory(func(subHandler bstream.Handler) bstream.Source {
 			source := blockstream.NewSource(
@@ -151,7 +148,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		fileSourceFactory := bstream.SourceFactory(func(subHandler bstream.Handler) bstream.Source {
 			fs := bstream.NewFileSource(
 				i.blocksStore,
-				startBlockRef.Num(),
+				startBlockNum,
 				2,   // always 2 download threads, ever
 				nil, //pipe.mapper.PreprocessBlock,
 				subHandler,
@@ -166,7 +163,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		if protocolFirstBlock > 0 {
 			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockNum(bstream.GetProtocolFirstBlock))
 		}
-		js := bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, gate, jsOptions...)
+		js := bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, handler, jsOptions...)
 
 		return js
 	})
@@ -178,7 +175,9 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		options = append(options, forkable.WithInclusiveLIB(bstream.NewBlockRef(previousIrreversibleID, fileSourceStartBlockNum)))
 	}
 
-	forkableHandler := forkable.New(pipe, options...)
+	gate := forkable.NewIrreversibleBlockNumGate(targetStartBlockNum, bstream.GateInclusive, pipe)
+
+	forkableHandler := forkable.New(gate, options...)
 
 	// note the indexer will listen for the source shutdown signal within the Launch() function
 	// hence we do not need to propagate the shutdown signal originating from said source to the indexer. (i.e es.OnTerminating(....))

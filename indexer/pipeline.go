@@ -212,7 +212,7 @@ func (pipe *Pipeline) processIrreversibleBlock(blk *bstream.Block, docsList []*d
 	}
 
 	if blockNum%pipe.shardSize == 0 && pipe.writableLastBlockID.Load() != "" {
-		zlog.Info("rotating index right before this block", zap.Uint64("shard_size", pipe.shardSize), zap.Stringer("this_block", blk))
+		zlog.Info("rotating index right before this block", zap.Uint64("shard_size", pipe.shardSize), zap.Stringer("this_block", blk), zap.String("writeable_last_block_id", pipe.writableLastBlockID.Load()))
 		if err := pipe.saveIndexFile(blockNum, blockID); err != nil {
 			return err
 		}
