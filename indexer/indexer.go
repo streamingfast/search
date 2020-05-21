@@ -176,22 +176,29 @@ func (i *Indexer) BuildLivePipeline(lastProcessedBlock bstream.BlockRef, enableU
 	i.pipeline = pipe
 }
 
-func (i *Indexer) BuildBatchPipeline(lastProcessedBlock bstream.BlockRef, startBlockNum uint64, numberOfBlocksToFetchBeforeStarting uint64, enableUpload bool, deleteAfterUpload bool) {
+func (i *Indexer) BuildBatchPipeline(previousIrreversibleBlock bstream.BlockRef, startBlockNum uint64, enableUpload bool, deleteAfterUpload bool) {
 	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
 
 	gate := bstream.NewBlockNumGate(startBlockNum, bstream.GateInclusive, pipe)
-	gate.MaxHoldOff = 1000
+	gate.MaxHoldOff = 0
 
-	forkableHandler := forkable.New(gate, forkable.WithExclusiveLIB(lastProcessedBlock), forkable.WithFilters(forkable.StepIrreversible))
-
-	getBlocksFrom := startBlockNum
-	if getBlocksFrom > numberOfBlocksToFetchBeforeStarting {
-		getBlocksFrom = startBlockNum - numberOfBlocksToFetchBeforeStarting // Make sure you cover that irreversible block
+	options := []forkable.Option{
+		forkable.WithFilters(forkable.StepIrreversible),
 	}
+
+	fileSourceStartBlockNum := previousIrreversibleBlock.Num()
+	if previousIrreversibleBlock.ID() != "" {
+		options = append(options, forkable.WithExclusiveLIB(previousIrreversibleBlock))
+		if previousIrreversibleBlock.Num()+1 == startBlockNum {
+			fileSourceStartBlockNum = startBlockNum
+		}
+	}
+
+	forkableHandler := forkable.New(gate, options...)
 
 	fs := bstream.NewFileSource(
 		i.blocksStore,
-		getBlocksFrom,
+		fileSourceStartBlockNum,
 		2,
 		pipe.mapper.PreprocessBlock,
 		forkableHandler,

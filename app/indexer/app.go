@@ -24,8 +24,8 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
-	"github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	"github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
+	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
+	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/indexer"
@@ -53,7 +53,8 @@ type Config struct {
 }
 
 type Modules struct {
-	BlockMapper search.BlockMapper
+	BlockMapper         search.BlockMapper
+	StartBlockResolvers []bstream.StartBlockResolver
 }
 
 var IndexerAppStartAborted = fmt.Errorf("getting irr block aborted by indexer application")
@@ -106,6 +107,7 @@ func (a *App) Run() error {
 	dexer.StopBlockNum = a.config.StopBlock
 	dexer.Verbose = a.config.IsVerbose
 
+	var absoluteStartBlockNum uint64
 	effectiveStartBlockNum := uint64(a.config.StartBlock)
 	if !a.config.EnableBatchMode {
 		resolvedStartBlock := uint64(a.config.StartBlock)
