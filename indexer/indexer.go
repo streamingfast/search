@@ -123,7 +123,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 
 		if startBlockRef.ID() == "" {
 			startBlockRef = bstream.NewBlockRef(previousIrreversibleID, fileSourceStartBlockNum)
-			gate = bstream.NewBlockNumGate(fileSourceStartBlockNum, bstream.GateInclusive, h)
+			gate = bstream.NewBlockNumGate(targetStartBlockNum, bstream.GateInclusive, h)
 		} else {
 			gateType := bstream.GateExclusive // We never want to process the same block twice.
 			if firstSourceFactoryCall {

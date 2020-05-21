@@ -106,16 +106,8 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 		targetStartBlock = dexer.NextBaseBlockAfter(targetStartBlock) // skip already processed indexes
 	}
 
-	for {
-		for _, resolver := range a.modules.StartBlockResolvers {
-			filesourceStartBlock, previousIrreversibleID, err = resolver.Resolve(ctx, targetStartBlock)
-			if err == nil {
-				return
-			}
-			zlog.Info("cannot resolve start block. Retrying forever", zap.Error(err))
-		}
-		time.Sleep(time.Second)
-	}
+	filesourceStartBlock, previousIrreversibleID, err = bstream.ParallelResolveStartBlock(ctx, targetStartBlock, a.modules.StartBlockResolvers, -1)
+	return
 }
 
 func (a *App) Run() error {
@@ -141,7 +133,6 @@ func (a *App) Run() error {
 		return fmt.Errorf("failed setting up blocks store: %w", err)
 	}
 
-	zlog.Info("setting up indexer")
 	dexer := indexer.NewIndexer(
 		indexesStore,
 		blocksStore,
@@ -158,16 +149,25 @@ func (a *App) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	a.OnTerminating(func(_ error) { cancel() })
 
+	zlog.Info("resolving start block...")
 	targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, err := a.resolveStartBlock(ctx, dexer)
 	if err != nil {
 		return err
 	}
 
 	if a.config.EnableBatchMode {
-		zlog.Info("setting up indexing batch pipeline")
+		zlog.Info("setting up indexing batch pipeline",
+			zap.Uint64("target_start_block_num", targetStartBlockNum),
+			zap.Uint64("filesource_start_block_num", filesourceStartBlockNum),
+			zap.String("previous_irreversible_id,", previousIrreversibleID),
+		)
 		dexer.BuildBatchPipeline(targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, a.config.EnableUpload, a.config.DeleteAfterUpload)
 	} else {
-		zlog.Info("setting up indexing live pipeline")
+		zlog.Info("setting up indexing live pipeline",
+			zap.Uint64("target_start_block_num", targetStartBlockNum),
+			zap.Uint64("filesource_start_block_num", filesourceStartBlockNum),
+			zap.String("previous_irreversible_id,", previousIrreversibleID),
+		)
 		dexer.BuildLivePipeline(targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, a.config.EnableUpload, a.config.DeleteAfterUpload)
 	}
 

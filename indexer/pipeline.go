@@ -350,7 +350,7 @@ func (p *Pipeline) prepareBackgroundUpload(idx *search.ShardIndex) {
 	zlog.Info("upload: done", zap.Uint64("base", idx.StartBlock))
 
 	if p.deleteAfterUpload {
-		zlog.Info("deleting processed files because batch mode", zap.Uint64("base", idx.StartBlock))
+		zlog.Info("deleting processed files", zap.Uint64("base", idx.StartBlock))
 		err = os.RemoveAll(finalPath)
 		if err != nil {
 			propagateError(fmt.Sprintf("cannot remove read path %q", finalPath), err)
