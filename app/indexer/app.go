@@ -93,6 +93,9 @@ func (a *App) nextLiveStartBlock() (targetStartBlock uint64, err error) {
 
 func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (targetStartBlock uint64, filesourceStartBlock uint64, previousIrreversibleID string, err error) {
 	if a.config.EnableBatchMode {
+		if a.config.StartBlock < 0 {
+			return 0, 0, "", fmt.Errorf("invalid negative start block in batch mode")
+		}
 		targetStartBlock = uint64(a.config.StartBlock)
 	} else {
 		if a.config.StartBlock >= 0 {
