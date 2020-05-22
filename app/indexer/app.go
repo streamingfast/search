@@ -24,8 +24,7 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
-	"github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	"github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
+	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/indexer"
@@ -34,26 +33,25 @@ import (
 )
 
 type Config struct {
-	HTTPListenAddr                      string // path for http healthcheck
-	GRPCListenAddr                      string // path for gRPC healthcheck
-	IndicesStoreURL                     string // Path to upload the wirtten index shards
-	BlocksStoreURL                      string // Path to read blocks archives
-	BlockstreamAddr                     string // gRPC URL to reach a stream of blocks
-	WritablePath                        string // Writable base path for storing index files
-	ShardSize                           uint64 // Number of blocks to store in a given Bleve index
-	StartBlock                          int64  // Start indexing from block num
-	StopBlock                           uint64 // Stop indexing at block num
-	IsVerbose                           bool   // verbose logging
-	EnableBatchMode                     bool   // Enabled the indexer in batch mode with a start & stop block
-	BlockmetaAddr                       string // Blockmeta endpoint is queried to find the last irreversible block on the network being indexed
-	NumberOfBlocksToFetchBeforeStarting uint64 // Number of blocks to fetch before start block
-	EnableUpload                        bool   // Upload merged indexes to the --indexes-store
-	DeleteAfterUpload                   bool   // Delete local indexes after uploading them
-	EnableIndexTruncation               bool   // Enable index truncation, requires a relative --start-block (negative number)
+	HTTPListenAddr        string // path for http healthcheck
+	GRPCListenAddr        string // path for gRPC healthcheck
+	IndicesStoreURL       string // Path to upload the wirtten index shards
+	BlocksStoreURL        string // Path to read blocks archives
+	BlockstreamAddr       string // gRPC URL to reach a stream of blocks
+	WritablePath          string // Writable base path for storing index files
+	ShardSize             uint64 // Number of blocks to store in a given Bleve index
+	StartBlock            int64  // Start indexing from block num
+	StopBlock             uint64 // Stop indexing at block num
+	IsVerbose             bool   // verbose logging
+	EnableBatchMode       bool   // Enabled the indexer in batch mode with a start & stop block
+	EnableUpload          bool   // Upload merged indexes to the --indexes-store
+	DeleteAfterUpload     bool   // Delete local indexes after uploading them
+	EnableIndexTruncation bool   // Enable index truncation, requires a relative --start-block (negative number)
 }
 
 type Modules struct {
-	BlockMapper search.BlockMapper
+	BlockMapper        search.BlockMapper
+	StartBlockResolver bstream.StartBlockResolver
 }
 
 var IndexerAppStartAborted = fmt.Errorf("getting irr block aborted by indexer application")
@@ -71,6 +69,48 @@ func New(config *Config, modules *Modules) *App {
 		config:  config,
 		modules: modules,
 	}
+}
+
+func (a *App) nextLiveStartBlock() (targetStartBlock uint64, err error) {
+	if a.config.StartBlock >= 0 {
+		return uint64(a.config.StartBlock), nil
+	}
+
+	zlog.Info("trying to resolve negative startblock from blockstream headinfo")
+	conn, err := dgrpc.NewInternalClient(a.config.BlockstreamAddr)
+	if err != nil {
+		return 0, fmt.Errorf("getting headinfo client: %w", err)
+	}
+	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
+	libRef, err := search.GetLibInfo(headinfoCli)
+	if err != nil {
+		return 0, fmt.Errorf("fetching LIB with headinfo: %w", err)
+	}
+
+	targetStartBlock = uint64(int64(libRef.Num()) + a.config.StartBlock)
+	return
+}
+
+func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (targetStartBlock uint64, filesourceStartBlock uint64, previousIrreversibleID string, err error) {
+	if a.config.EnableBatchMode {
+		if a.config.StartBlock < 0 {
+			return 0, 0, "", fmt.Errorf("invalid negative start block in batch mode")
+		}
+		targetStartBlock = uint64(a.config.StartBlock)
+	} else {
+		if a.config.StartBlock >= 0 {
+			targetStartBlock = uint64(a.config.StartBlock)
+		} else {
+			targetStartBlock, err = a.nextLiveStartBlock()
+			if err != nil {
+				return
+			}
+		}
+		targetStartBlock = dexer.NextBaseBlockAfter(targetStartBlock) // skip already processed indexes
+	}
+
+	filesourceStartBlock, previousIrreversibleID, err = a.modules.StartBlockResolver.Resolve(ctx, targetStartBlock)
+	return
 }
 
 func (a *App) Run() error {
@@ -92,7 +132,6 @@ func (a *App) Run() error {
 		return fmt.Errorf("failed setting up blocks store: %w", err)
 	}
 
-	zlog.Info("setting up indexer")
 	dexer := indexer.NewIndexer(
 		indexesStore,
 		blocksStore,
@@ -106,69 +145,29 @@ func (a *App) Run() error {
 	dexer.StopBlockNum = a.config.StopBlock
 	dexer.Verbose = a.config.IsVerbose
 
-	effectiveStartBlockNum := uint64(a.config.StartBlock)
-	if !a.config.EnableBatchMode {
-		resolvedStartBlock := uint64(a.config.StartBlock)
-		if a.config.StartBlock < 0 {
-			zlog.Info("setting up head info client")
-			conn, err := dgrpc.NewInternalClient(a.config.BlockstreamAddr)
-			if err != nil {
-				return fmt.Errorf("getting headinfo client: %w", err)
-			}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.OnTerminating(func(_ error) { cancel() })
 
-			headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
-			libRef, err := search.GetLibInfo(headinfoCli)
-			if err != nil {
-				return fmt.Errorf("fetching LIB with headinfo: %w", err)
-			}
-
-			resolvedStartBlock = uint64(int64(libRef.Num()) + a.config.StartBlock)
-			zlog.Info("indexer resolving start block block",
-				zap.String("lib_id", libRef.ID()),
-				zap.Uint64("lib_num", libRef.Num()),
-				zap.Uint64("start_block", resolvedStartBlock))
-		}
-
-		effectiveStartBlockNum = dexer.NextBaseBlockAfter(resolvedStartBlock)
-		zlog.Info("indexer live mode",
-			zap.Int64("start_block_num", a.config.StartBlock),
-			zap.Uint64("resolved_start_block_num", resolvedStartBlock),
-			zap.Uint64("effective_start_block_num", effectiveStartBlockNum))
-	}
-
-	libNum := effectiveStartBlockNum
-	if libNum > 0 {
-		libNum -= 1
-	}
-
-	zlog.Info("setting up blockmeta")
-	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)
+	zlog.Info("resolving start block...")
+	targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, err := a.resolveStartBlock(ctx, dexer)
 	if err != nil {
-		return fmt.Errorf("getting blockmeta client: %w", err)
+		return err
 	}
-	blockmetaCli := pbblockmeta.NewBlockIDClient(conn)
-
-	zlog.Info("getting irreversible block", zap.Uint64("lib_num", libNum))
-
-	lastIrrBlockRef, err := a.getIrrBlock(blockmetaCli, libNum)
-	if err != nil {
-		if err == IndexerAppStartAborted {
-			return nil
-		}
-		return fmt.Errorf("fetching irreversible block: %w", err)
-	}
-
-	zlog.Info("base irreversible block to start with",
-		zap.Uint64("lib_num", lastIrrBlockRef.Num()),
-		zap.String("lib_id", lastIrrBlockRef.ID()), zap.
-			Uint64("effective_start_block", effectiveStartBlockNum))
 
 	if a.config.EnableBatchMode {
-		zlog.Info("setting up indexing batch pipeline")
-		dexer.BuildBatchPipeline(lastIrrBlockRef, effectiveStartBlockNum, a.config.NumberOfBlocksToFetchBeforeStarting, a.config.EnableUpload, a.config.DeleteAfterUpload)
+		zlog.Info("setting up indexing batch pipeline",
+			zap.Uint64("target_start_block_num", targetStartBlockNum),
+			zap.Uint64("filesource_start_block_num", filesourceStartBlockNum),
+			zap.String("previous_irreversible_id,", previousIrreversibleID),
+		)
+		dexer.BuildBatchPipeline(targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, a.config.EnableUpload, a.config.DeleteAfterUpload)
 	} else {
-		zlog.Info("setting up indexing live pipeline")
-		dexer.BuildLivePipeline(lastIrrBlockRef, a.config.EnableUpload, a.config.DeleteAfterUpload)
+		zlog.Info("setting up indexing live pipeline",
+			zap.Uint64("target_start_block_num", targetStartBlockNum),
+			zap.Uint64("filesource_start_block_num", filesourceStartBlockNum),
+			zap.String("previous_irreversible_id,", previousIrreversibleID),
+		)
+		dexer.BuildLivePipeline(targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, a.config.EnableUpload, a.config.DeleteAfterUpload)
 	}
 
 	if a.config.EnableIndexTruncation {
@@ -180,7 +179,7 @@ func (a *App) Run() error {
 		go truncator.Launch()
 	}
 
-	err = dexer.Bootstrap(uint64(effectiveStartBlockNum))
+	err = dexer.Bootstrap(targetStartBlockNum)
 	if err != nil {
 		return fmt.Errorf("failed to bootstrap indexer: %w", err)
 	}
@@ -219,21 +218,6 @@ func (a *App) IsReady() bool {
 	}
 
 	return false
-}
-
-func (a *App) getIrrBlock(blockmetaCli pbblockmeta.BlockIDClient, blockNum uint64) (bstream.BlockRef, error) {
-	for {
-		lastIrrBlockRef, err := search.GetIrreversibleBlock(blockmetaCli, blockNum, context.Background(), 0)
-		if err == nil {
-			return lastIrrBlockRef, nil
-		}
-
-		select {
-		case <-time.After(time.Second):
-		case <-a.Shutter.Terminating():
-			return nil, IndexerAppStartAborted
-		}
-	}
 }
 
 func getBlockCount(startBlock int64) (uint64, error) {
