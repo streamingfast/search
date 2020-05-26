@@ -215,13 +215,18 @@ func (b *ArchiveBackend) StreamMatches(req *pbsearch.BackendRequest, stream pbse
 		return err
 	}
 
+	//trailer.Set("last-block-read", "0")
+	//return nil
+
+
 	go archiveQuery.run()
 
 	for {
 		select {
 		case err := <-archiveQuery.Errors:
 			if err != nil {
-				if ctx.Err() == context.Canceled { // error is most likely not from us, but happened upstream
+				if ctx.Err() == context.Canceled {
+					// error is most likely not from us, but happened upstream
 					return nil
 				}
 
@@ -232,7 +237,13 @@ func (b *ArchiveBackend) StreamMatches(req *pbsearch.BackendRequest, stream pbse
 
 		case match, ok := <-archiveQuery.Results:
 			if !ok {
-				trailer.Set("last-block-read", fmt.Sprintf("%d", archiveQuery.LastBlockRead.Load()))
+
+				if !archiveQuery.ProcessedShard {
+					return fmt.Errorf("search backend did not process any shard, potential block range routing issue advertising ranges we don't serve")
+				} else {
+					trailer.Set("last-block-read", fmt.Sprintf("%d", archiveQuery.LastBlockRead.Load()))
+				}
+
 				return nil
 			}
 

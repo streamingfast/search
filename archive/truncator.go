@@ -48,8 +48,15 @@ func (t *Truncator) attemptTruncation() {
 		zlog.Info("truncating below",
 			zap.Uint64("target_truncate_block", t.targetTruncateBlock),
 			zap.Uint64("current_lowest_serveable_block", t.indexPool.GetLowestServeableBlockNum()))
-		t.indexPool.truncateBelow(t.targetTruncateBlock)
-		t.indexPool.SetLowestServeableBlockNum(t.targetTruncateBlock)
+		err := t.indexPool.SetLowestServeableBlockNum(t.targetTruncateBlock)
+		if err != nil {
+			zlog.Error("unable to set lowest serveable block after truncating the index pool, not truncating pool",
+				zap.Uint64("target_truncate_block", t.targetTruncateBlock),
+			)
+		} else {
+			t.indexPool.truncateBelow(t.targetTruncateBlock)
+		}
+
 	}
 
 	// getting the highest current read only block

@@ -46,8 +46,9 @@ type archiveQuery struct {
 	Errors        chan error
 	LastBlockRead *atomic.Uint64
 
-	metrics *search.QueryMetrics
-	zlog    *zap.Logger
+	metrics        *search.QueryMetrics
+	zlog           *zap.Logger
+	ProcessedShard bool
 }
 
 func (b *ArchiveBackend) newArchiveQuery(
@@ -255,6 +256,7 @@ func (q *archiveQuery) linearizeStreamResults(ctx context.Context, incomingPerSh
 			case <-ctx.Done():
 				return
 			case result := <-nextShardResults.resultChan:
+				q.ProcessedShard = true
 				if q.metrics != nil {
 					// We will actually utilized at least one transaction from this
 					// shard results, which will contain all the matches for a single

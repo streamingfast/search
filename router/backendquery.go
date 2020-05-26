@@ -68,6 +68,10 @@ func (q *BackendQuery) run(ctx context.Context, zlogger *zap.Logger, streamSend 
 		if err == io.EOF {
 			trailer := resp.Trailer()
 			if x := trailer.Get("last-block-read"); len(x) > 0 {
+				if x[0] == "-1" {
+					return fmt.Errorf("backend last-block-read is -1, backend should returned an error")
+				}
+
 				if y, err := strconv.ParseInt(x[0], 10, 64); err == nil {
 					q.LastBlockRead = y
 					return nil
