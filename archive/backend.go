@@ -215,10 +215,6 @@ func (b *ArchiveBackend) StreamMatches(req *pbsearch.BackendRequest, stream pbse
 		return err
 	}
 
-	//trailer.Set("last-block-read", "0")
-	//return nil
-
-
 	go archiveQuery.run()
 
 	for {
