@@ -570,6 +570,8 @@ func (p *IndexPool) buildWritableIndexFilePath(baseBlockNum uint64, suffix strin
 func (p *IndexPool) openReadOnly(baseBlockNum uint64) (*search.ShardIndex, error) {
 	path := p.getReadOnlyIndexFilePath(baseBlockNum)
 	idxer, err := scorch.NewScorch("data", map[string]interface{}{
+		"forceSegmentType": "zap",
+		"forceSegmentVersion": 14,
 		"read_only": true,
 		"path":      path,
 	}, nil)
