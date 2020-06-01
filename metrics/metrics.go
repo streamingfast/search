@@ -51,6 +51,9 @@ var RoarCacheMiss = ArchiveMetricsSet.NewCounter("roar_cache_misses", "Number of
 var RoarCacheHit = ArchiveMetricsSet.NewCounter("roar_cache_hits", "Number of roar cache hits")
 var RoarCacheFail = ArchiveMetricsSet.NewCounter("roar_cache_failures", "Number of roar cache lookup failures")
 
+// Archive-BigQuery
+var ArchiveBigQueryMetricsSet = dmetrics.NewSet()
+
 // Indexer
 var IndexerMetricSet = dmetrics.NewSet()
 var CatchUpBlocksPerSecond = IndexerMetricSet.NewGauge("catch_up_blocks_per_second")
