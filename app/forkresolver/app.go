@@ -56,6 +56,7 @@ func New(config *Config, modules *Modules) *App {
 	return &App{
 		Shutter: shutter.New(),
 		config:  config,
+		modules: modules,
 	}
 }
 
