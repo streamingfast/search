@@ -16,14 +16,12 @@ package indexer_bigquery
 
 import (
 	"fmt"
+	"github.com/blevesearch/bleve/document"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
-	_ "github.com/blevesearch/bleve/analysis/analyzer/keyword"
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/index/scorch"
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/bstream/forkable"
 	"github.com/dfuse-io/dstore"
@@ -65,7 +63,7 @@ type Pipeline struct {
 	shardSize uint64
 
 	// writable index is being filled with irreversible blocks, with the goal of compacting it later, and making it a new ShardSize shard.
-	writable             *search.ShardIndex // should never be `nil` if started without `--no-write`
+	writable             *BigQueryShardIndex // should never be `nil` if started without `--no-write`
 	writableLastBlockNum atomic.Uint64
 	writableLastBlockID  atomic.String
 
@@ -174,7 +172,6 @@ func (pipe *Pipeline) processIrreversibleBlock(blk *bstream.Block, docsList []*d
 
 	blockID := blk.ID()
 	blockNum := blk.Num()
-	blockTime := blk.Time().Format(search.TimeFormatBleveID)
 
 	if pipe.indexer.StopBlockNum != 0 && blockNum > pipe.indexer.StopBlockNum {
 		return CompletedError
@@ -218,25 +215,6 @@ func (pipe *Pipeline) processIrreversibleBlock(blk *bstream.Block, docsList []*d
 		return CompletedError
 	}
 
-	isFirstBlock := blockNum == bstream.GetProtocolFirstBlock
-	isShardsFirstBlock := blockNum%pipe.shardSize == 0
-
-	if isFirstBlock || isShardsFirstBlock {
-		startNumDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_num:%d", blockNum))
-		startIDDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_id:%s", blockID))
-		startTimeDoc := document.NewDocument(fmt.Sprintf("meta:boundary:start_time:%s", blockTime))
-
-		docsList = append(docsList, startNumDoc, startIDDoc, startTimeDoc)
-	}
-
-	isShardLastBlock := (blockNum+1)%pipe.shardSize == 0 && pipe.writableLastBlockID.Load() != ""
-	if isShardLastBlock {
-		endNumDoc := document.NewDocument(fmt.Sprintf("meta:boundary:end_num:%d", blockNum))
-		endIDDoc := document.NewDocument(fmt.Sprintf("meta:boundary:end_id:%s", blockID))
-		endTimeDoc := document.NewDocument(fmt.Sprintf("meta:boundary:end_time:%s", blockTime))
-
-		docsList = append(docsList, endNumDoc, endIDDoc, endTimeDoc)
-	}
 	if err := pipe.writeIrreversibleBatch(docsList, blockNum, blockID); err != nil {
 		return err
 	}
@@ -249,31 +227,21 @@ func (p *Pipeline) buildWritableIndexFilePath(baseBlockNum uint64, suffix string
 		suffix = "-" + suffix
 	}
 
-	return filepath.Join(p.writablePath, fmt.Sprintf("%010d%s.bleve", baseBlockNum, suffix))
+	return filepath.Join(p.writablePath, fmt.Sprintf("%010d%s.avro", baseBlockNum, suffix))
 }
 
-func (p *Pipeline) newWritableIndex(baseBlockNum uint64) (*search.ShardIndex, error) {
+func (p *Pipeline) newWritableIndex(baseBlockNum uint64) (*BigQueryShardIndex, error) {
 	var err error
-	var shardIndex *search.ShardIndex
+	var shardIndex *BigQueryShardIndex
 
-	shardIndex, _ = search.NewShardIndexWithAnalysisQueue(baseBlockNum, p.shardSize, nil, p.buildWritableIndexFilePath, nil) // error only happens when input index is not nil
+	shardIndex, _ = NewBigQueryShardIndex(baseBlockNum, p.shardSize, p.buildWritableIndexFilePath) // error only happens when input index is not nil
 
 	buildingPath := shardIndex.WritablePath("building")
 
 	_ = os.RemoveAll(buildingPath)
 	os.MkdirAll(buildingPath, 0755)
 
-	finalTargetPath := shardIndex.WritablePath("")
-	builderOptions := map[string]interface{}{
-		"forceSegmentType": "zap",
-		"forceSegmentVersion": 14,
-		"path":            finalTargetPath,
-		"buildPathPrefix": buildingPath,
-		"batchSize":       scorch.DefaultBuilderBatchSize,
-		"mergeMax":        scorch.DefaultBuilderMergeMax,
-	}
-	shardIndex.IndexTargetPath = finalTargetPath
-	shardIndex.IndexBuilder, err = scorch.NewBuilder(builderOptions)
+	shardIndex.IndexTargetPath = shardIndex.WritablePath("")
 	if err != nil {
 		return nil, fmt.Errorf("unable to create offline index builder: %s", err)
 	}
@@ -306,7 +274,7 @@ func (p *Pipeline) saveIndexFile(nextIndexBase uint64, currentBlockID string) (e
 	return nil
 }
 
-func (p *Pipeline) prepareBackgroundUpload(idx *search.ShardIndex) {
+func (p *Pipeline) prepareBackgroundUpload(idx *BigQueryShardIndex) {
 	p.uploadGroup.Add(1)
 
 	// need to decrement uploadGroup counter *before* shutdown
@@ -321,22 +289,14 @@ func (p *Pipeline) prepareBackgroundUpload(idx *search.ShardIndex) {
 	_ = os.RemoveAll(finalPath)
 
 	t0 := time.Now()
-	err := idx.IndexBuilder.Close() // Does force-merge operation
+	err := idx.Close()
 	if err != nil {
 		propagateError("error closing the offline index builder", err)
 		return
 	}
 	zlog.Info("offline index builder closed", zap.Duration("timing", time.Since(t0)))
 
-	// TODO: Analyze the result.
-
-	if _, err := search.CheckIndexIntegrity(finalPath, p.shardSize); err != nil {
-		propagateError("index integrity failed", err)
-		return
-	}
-
 	buildingPath := idx.WritablePath("building")
-
 	_ = os.RemoveAll(buildingPath)
 
 	if err := p.Upload(idx.StartBlock, finalPath); err != nil {
@@ -366,7 +326,7 @@ func (p *Pipeline) writeIrreversibleBatch(docsList []*document.Document, blockNu
 	defer p.writable.Lock.Unlock()
 
 	for _, doc := range docsList {
-		if err := p.writable.IndexBuilder.Index(doc); err != nil {
+		if err := p.writable.Index(doc); err != nil {
 			return fmt.Errorf("offline index builder Index: %w", err)
 		}
 	}

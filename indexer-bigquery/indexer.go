@@ -37,7 +37,6 @@ import (
 type IndexerBigQuery struct {
 	*shutter.Shutter
 
-	httpListenAddr string
 	grpcListenAddr string
 
 	StartBlockNum uint64
@@ -73,6 +72,7 @@ func NewIndexerBigQuery(
 	blockstreamAddr string,
 	blockMapper search.BlockMapper,
 	writePath string,
+	shardSize uint64,
 	grpcListenAddr string,
 
 ) *IndexerBigQuery {
@@ -83,6 +83,7 @@ func NewIndexerBigQuery(
 		blocksStore:     blocksStore,
 		blockstreamAddr: blockstreamAddr,
 		blockMapper:     blockMapper,
+		shardSize:       shardSize,
 		writePath:       writePath,
 		grpcListenAddr:  grpcListenAddr,
 	}

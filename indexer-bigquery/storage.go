@@ -18,10 +18,81 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
 )
+
+
+func NewBigQueryShardIndex(baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
+	si, err := newShardIndex(baseBlockNum, shardSize, pathFunc)
+	if err != nil {
+		return nil, err
+	}
+	return si, nil
+}
+
+func newShardIndex(baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
+	shard := &BigQueryShardIndex{
+		StartBlock:                baseBlockNum,
+		EndBlock:                  baseBlockNum + shardSize - 1,
+		writableIndexFilePathFunc: pathFunc,
+	}
+	if baseBlockNum == 0 && shardSize == 0 {
+		shard.EndBlock = 0
+		return shard, nil
+	}
+
+	return shard, nil
+}
+
+type filePathFunc func(baseBlockNum uint64, suffix string) string
+
+type BigQueryShardIndex struct {
+	IndexTargetPath string
+
+	// These two values represent the "potential" start and end
+	// block. It doesn't mean there is actual data within those two
+	// blocks: ex: if block endBlock had 0 transactions, we wouldn't
+	// shrink `endBlock`.
+	//
+	// The chain of [startBlock, endBlock] -> [startBlock, endBlock]
+	// *must* be absolutely continuous from index to index within the
+	// process, and between the different segments of indexes
+	// (readOnly, merging, writable, and live)
+	StartBlock     uint64 // inclusive
+	StartBlockID   string
+	StartBlockTime time.Time
+	EndBlock       uint64 // inclusive
+	EndBlockID     string
+	EndBlockTime   time.Time
+
+	mergeDone bool
+
+	writableIndexFilePathFunc filePathFunc
+
+	Lock sync.RWMutex
+}
+
+func (s *BigQueryShardIndex) containsBlockNum(blockNum uint64) bool {
+	return blockNum >= s.StartBlock && blockNum <= s.EndBlock
+}
+
+func (s *BigQueryShardIndex) WritablePath(suffix string) string {
+	return s.writableIndexFilePathFunc(s.StartBlock, suffix)
+}
+
+func (s *BigQueryShardIndex) Index(entries []map[string]interface{}) {
+
+}
+
+func (s *BigQueryShardIndex) Close() error {
+	//TODO: Close AVRO cleanly
+	return nil
+}
+
+/////
 
 func (i *IndexerBigQuery) NextBaseBlockAfter(startBlockNum uint64) (nextStartBlockNum uint64) {
 	nextStartBlockNum = startBlockNum
@@ -29,13 +100,13 @@ func (i *IndexerBigQuery) NextBaseBlockAfter(startBlockNum uint64) (nextStartBlo
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	remote, err := i.indexesStore.ListFiles(ctx, fmt.Sprintf("shards-%d/", i.shardSize), ".tmp", 9999999)
+	remote, err := i.indexesStore.ListFiles(ctx, fmt.Sprintf("bigquery-shards-%d/", i.shardSize), ".tmp", 9999999)
 	if err != nil {
 		zlog.Error("listing files from indexes store", zap.Error(err))
 		return
 	}
 
-	remotePathRE := regexp.MustCompile(`(\d{10})\.bleve\.tar\.zst`)
+	remotePathRE := regexp.MustCompile(`(\d{10})\.avro`)
 
 	count := 0
 	for _, file := range remote {

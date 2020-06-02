@@ -38,6 +38,7 @@ type Config struct {
 	BlocksStoreURL        string // Path to read blocks archives
 	BlockstreamAddr       string // gRPC URL to reach a stream of blocks
 	WritablePath          string // Writable base path for storing index files
+	ShardSize             uint64 // Number of blocks to store in a given Bleve index
 	StartBlock            int64  // Start indexing from block num
 	StopBlock             uint64 // Stop indexing at block num
 	IsVerbose             bool   // verbose logging
@@ -117,7 +118,7 @@ func (a *App) Run() error {
 		return err
 	}
 
-	indexesStore, err := dstore.NewStore(a.config.IndicesStoreURL, "", "zstd", true)
+	indexesStore, err := dstore.NewStore(a.config.IndicesStoreURL, "", "", true)
 	if err != nil {
 		return fmt.Errorf("failed setting up indexes store: %w", err)
 	}
@@ -133,6 +134,7 @@ func (a *App) Run() error {
 		a.config.BlockstreamAddr,
 		a.modules.BlockMapper,
 		a.config.WritablePath,
+		a.config.ShardSize,
 		a.config.GRPCListenAddr)
 
 	dexer.StopBlockNum = a.config.StopBlock
