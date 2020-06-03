@@ -16,7 +16,6 @@ package indexer_bigquery
 
 import (
 	"fmt"
-	"github.com/blevesearch/bleve/document"
 	"os"
 	"path/filepath"
 	"sync"
@@ -137,15 +136,15 @@ func (pipe *Pipeline) ProcessBlock(blk *bstream.Block, objWrap interface{}) erro
 
 	case forkable.StepIrreversible:
 
-		var docsList []*document.Document
+		var docsList []map[string]interface{}
 		if obj.Obj == nil { // was not preprocessed
 			preprocessedObj, err := pipe.mapper.PreprocessBlock(blk)
 			if err != nil {
 				return err
 			}
-			docsList = preprocessedObj.([]*document.Document)
+			docsList = preprocessedObj.([]map[string]interface{})
 		} else {
-			docsList = obj.Obj.([]*document.Document)
+			docsList = obj.Obj.([]map[string]interface{})
 		}
 		err := pipe.processIrreversibleBlock(blk, docsList)
 		if err != nil {
@@ -166,7 +165,7 @@ func (pipe *Pipeline) ProcessBlock(blk *bstream.Block, objWrap interface{}) erro
 	}
 }
 
-func (pipe *Pipeline) processIrreversibleBlock(blk *bstream.Block, docsList []*document.Document) error {
+func (pipe *Pipeline) processIrreversibleBlock(blk *bstream.Block, docsList []map[string]interface{}) error {
 	// TODO: when doing reprocessing, or when there's a stop-block, you don't need to
 	//       write StepNew in Live blocks.
 
@@ -317,7 +316,7 @@ func (p *Pipeline) prepareBackgroundUpload(idx *BigQueryShardIndex) {
 	return
 }
 
-func (p *Pipeline) writeIrreversibleBatch(docsList []*document.Document, blockNum uint64, blockID string) error {
+func (p *Pipeline) writeIrreversibleBatch(docsList []map[string]interface{}, blockNum uint64, blockID string) error {
 	if p.writable == nil {
 		return fmt.Errorf("no writable index ready in index pool")
 	}

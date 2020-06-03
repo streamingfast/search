@@ -17,35 +17,14 @@ package indexer_bigquery
 import (
 	"context"
 	"fmt"
+	"github.com/linkedin/goavro/v2"
+	"os"
 	"regexp"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 )
-
-
-func NewBigQueryShardIndex(baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
-	si, err := newShardIndex(baseBlockNum, shardSize, pathFunc)
-	if err != nil {
-		return nil, err
-	}
-	return si, nil
-}
-
-func newShardIndex(baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
-	shard := &BigQueryShardIndex{
-		StartBlock:                baseBlockNum,
-		EndBlock:                  baseBlockNum + shardSize - 1,
-		writableIndexFilePathFunc: pathFunc,
-	}
-	if baseBlockNum == 0 && shardSize == 0 {
-		shard.EndBlock = 0
-		return shard, nil
-	}
-
-	return shard, nil
-}
 
 type filePathFunc func(baseBlockNum uint64, suffix string) string
 
@@ -73,6 +52,31 @@ type BigQueryShardIndex struct {
 	writableIndexFilePathFunc filePathFunc
 
 	Lock sync.RWMutex
+
+	ocfFile *os.File
+	ocfWriter *goavro.OCFWriter
+}
+
+func NewBigQueryShardIndex(baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
+	si, err := newShardIndex(baseBlockNum, shardSize, pathFunc)
+	if err != nil {
+		return nil, err
+	}
+	return si, nil
+}
+
+func newShardIndex(baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
+	shard := &BigQueryShardIndex{
+		StartBlock:                baseBlockNum,
+		EndBlock:                  baseBlockNum + shardSize - 1,
+		writableIndexFilePathFunc: pathFunc,
+	}
+	if baseBlockNum == 0 && shardSize == 0 {
+		shard.EndBlock = 0
+		return shard, nil
+	}
+
+	return shard, nil
 }
 
 func (s *BigQueryShardIndex) containsBlockNum(blockNum uint64) bool {
@@ -83,8 +87,8 @@ func (s *BigQueryShardIndex) WritablePath(suffix string) string {
 	return s.writableIndexFilePathFunc(s.StartBlock, suffix)
 }
 
-func (s *BigQueryShardIndex) Index(entries []map[string]interface{}) {
-
+func (s *BigQueryShardIndex) Index(doc map[string]interface{}) error {
+	return nil
 }
 
 func (s *BigQueryShardIndex) Close() error {
