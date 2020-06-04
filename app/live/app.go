@@ -246,11 +246,10 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 		//	zlog.Warn("archive search is late, starting from stream LIB", zap.Uint64("stream_libnum", fromStream.Num()), zap.Uint64("archive_libnum", fromArchive.Num()))
 		//	return fromStream, false, nil
 		//}
-		zlog.Info("waiting no start-block condition matched",
-			zap.Uint64("network_head_block_num", fromNetwork.Num()),
-			zap.String("network_head_block_id", fromNetwork.ID()),
-			zap.Uint64("stream_head_block_num", fromStream.Num()),
-			zap.String("stream_head_block_id", fromStream.ID()),
+		zlog.Info("waiting, no start block condition matched",
+			zap.Stringer("archive_head_block", fromArchive),
+			zap.Stringer("network_head_block", fromNetwork),
+			zap.Stringer("stream_head_block", fromStream),
 			zap.Uint64("start_block_tolerance", a.config.StartBlockDriftTolerance),
 		)
 	}
