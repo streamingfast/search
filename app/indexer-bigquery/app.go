@@ -46,7 +46,7 @@ type Config struct {
 }
 
 type Modules struct {
-	BlockMapper        search.BlockMapper
+	BigQueryBlockMapper indexerBigQuery.BigQueryBlockMapper
 	StartBlockResolver bstream.StartBlockResolver
 }
 
@@ -132,7 +132,7 @@ func (a *App) Run() error {
 		indexesStore,
 		blocksStore,
 		a.config.BlockstreamAddr,
-		a.modules.BlockMapper,
+		a.modules.BigQueryBlockMapper,
 		a.config.WritablePath,
 		a.config.ShardSize,
 		a.config.GRPCListenAddr)

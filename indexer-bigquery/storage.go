@@ -17,8 +17,10 @@ package indexer_bigquery
 import (
 	"context"
 	"fmt"
-	"github.com/linkedin/goavro/v2"
+	"github.com/hamba/avro"
+	"github.com/hamba/avro/ocf"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
@@ -29,8 +31,6 @@ import (
 type filePathFunc func(baseBlockNum uint64, suffix string) string
 
 type BigQueryShardIndex struct {
-	IndexTargetPath string
-
 	// These two values represent the "potential" start and end
 	// block. It doesn't mean there is actual data within those two
 	// blocks: ex: if block endBlock had 0 transactions, we wouldn't
@@ -53,20 +53,25 @@ type BigQueryShardIndex struct {
 
 	Lock sync.RWMutex
 
-	ocfFile *os.File
-	ocfWriter *goavro.OCFWriter
+	BuildTimePath string
+	IndexTargetPath string
+
+	codec avro.Schema
+	buildTimeOcfFile *os.File
+	buildTimeOcfWriter *avro.Encoder
 }
 
-func NewBigQueryShardIndex(baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
-	si, err := newShardIndex(baseBlockNum, shardSize, pathFunc)
+func NewBigQueryShardIndex(codec avro.Schema, baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
+	si, err := newShardIndex(codec, baseBlockNum, shardSize, pathFunc)
 	if err != nil {
 		return nil, err
 	}
 	return si, nil
 }
 
-func newShardIndex(baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
+func newShardIndex(codec avro.Schema, baseBlockNum uint64, shardSize uint64, pathFunc filePathFunc) (*BigQueryShardIndex, error) {
 	shard := &BigQueryShardIndex{
+		codec: codec,
 		StartBlock:                baseBlockNum,
 		EndBlock:                  baseBlockNum + shardSize - 1,
 		writableIndexFilePathFunc: pathFunc,
@@ -87,13 +92,85 @@ func (s *BigQueryShardIndex) WritablePath(suffix string) string {
 	return s.writableIndexFilePathFunc(s.StartBlock, suffix)
 }
 
+//func (s *BigQueryShardIndex) getOCFWriter() (*goavro.OCFWriter, error) {
+//	if s.buildTimeOcfWriter != nil {
+//		return s.buildTimeOcfWriter, nil
+//	}
+//
+//	if s.buildTimeOcfFile == nil {
+//		buildPath := s.WritablePath("building")
+//		zlog.Info("opening scratch ocf file", zap.String("filename", buildPath))
+//
+//		err := os.MkdirAll(filepath.Dir(buildPath), os.ModePerm)
+//		if err != nil {
+//			return nil, err
+//		}
+//
+//		s.buildTimeOcfFile, err = os.OpenFile(buildPath, os.O_RDWR|os.O_CREATE, 0644)
+//		if err != nil {
+//			return nil, err
+//		}
+//
+//		s.buildTimeOcfWriter, err = goavro.NewOCFWriter(goavro.OCFConfig{
+//			W:               s.buildTimeOcfFile,
+//			Codec:           s.codec,
+//			CompressionName: goavro.CompressionSnappyLabel,
+//		})
+//		if err != nil {
+//			return nil, fmt.Errorf("creating ocf writer: %w", err)
+//		}
+//	}
+//
+//	return s.buildTimeOcfWriter, nil
+//}
+
+func (s *BigQueryShardIndex) getOCFWriter() (*avro.Encoder, error) {
+	if s.buildTimeOcfWriter != nil {
+		return s.buildTimeOcfWriter, nil
+	}
+
+	if s.buildTimeOcfFile == nil {
+		buildPath := s.WritablePath("building")
+		zlog.Info("opening scratch ocf file", zap.String("filename", buildPath))
+
+		err := os.MkdirAll(filepath.Dir(buildPath), os.ModePerm)
+		if err != nil {
+			return nil, err
+		}
+
+		s.buildTimeOcfFile, err = os.OpenFile(buildPath, os.O_RDWR|os.O_CREATE, 0644)
+		if err != nil {
+			return nil, err
+		}
+
+		//s.buildTimeOcfWriter, err = ocf.NewEncoder(s.codec, s.buildTimeOcfFile)
+		ocf.
+		x, e := ocf.NewEncoder(s.codec, s.buildTimeOcfFile)
+		if err != nil {
+			return nil, fmt.Errorf("creating ocf writer: %w", err)
+		}
+	}
+
+	return s.buildTimeOcfWriter, nil
+}
+
+
 func (s *BigQueryShardIndex) Index(doc map[string]interface{}) error {
+	w, err := s.getOCFWriter()
+	if err != nil {
+		return fmt.Errorf("failed to get writer: %w", err)
+	}
+
+	err = w.Append([]interface{}{doc})
+	if err != nil {
+		return fmt.Errorf("failed writing to scratch file: %w", err)
+	}
+
 	return nil
 }
 
 func (s *BigQueryShardIndex) Close() error {
-	//TODO: Close AVRO cleanly
-	return nil
+	return s.buildTimeOcfFile.Close()
 }
 
 /////

@@ -24,7 +24,6 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/bstream/forkable"
 	"github.com/dfuse-io/dstore"
-	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/metrics"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
@@ -53,7 +52,7 @@ func (m pipelineMode) String() string {
 }
 
 type Pipeline struct {
-	mapper       *search.Mapper
+	mapper       *Mapper
 	indexer      *IndexerBigQuery
 	mode         *atomic.Int32
 	catchUpStats *stats
@@ -72,8 +71,8 @@ type Pipeline struct {
 	uploadGroup       sync.WaitGroup
 }
 
-func (i *IndexerBigQuery) newPipeline(blockMapper search.BlockMapper) *Pipeline {
-	mapper, err := search.NewMapper(blockMapper)
+func (i *IndexerBigQuery) newPipeline(blockMapper BigQueryBlockMapper) *Pipeline {
+	mapper, err := NewMapper(blockMapper)
 	if err != nil {
 		zlog.Panic(err.Error())
 	}
@@ -233,13 +232,11 @@ func (p *Pipeline) newWritableIndex(baseBlockNum uint64) (*BigQueryShardIndex, e
 	var err error
 	var shardIndex *BigQueryShardIndex
 
-	shardIndex, _ = NewBigQueryShardIndex(baseBlockNum, p.shardSize, p.buildWritableIndexFilePath) // error only happens when input index is not nil
+	shardIndex, _ = NewBigQueryShardIndex(p.mapper.blockMapper.GetCodec(), baseBlockNum, p.shardSize, p.buildWritableIndexFilePath) // error only happens when input index is not nil
 
 	buildingPath := shardIndex.WritablePath("building")
 
 	_ = os.RemoveAll(buildingPath)
-	os.MkdirAll(buildingPath, 0755)
-
 	shardIndex.IndexTargetPath = shardIndex.WritablePath("")
 	if err != nil {
 		return nil, fmt.Errorf("unable to create offline index builder: %s", err)

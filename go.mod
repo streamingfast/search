@@ -18,21 +18,22 @@ require (
 	github.com/dfuse-io/dmetrics v0.0.0-20200508152325-93e7e9d576bb
 	github.com/dfuse-io/dstore v0.1.0
 	github.com/dfuse-io/logging v0.0.0-20200417143534-5e26069a5e39
-	github.com/google/cel-go v0.4.0
 	github.com/dfuse-io/pbgo v0.0.6-0.20200602201455-99986ef5a09d
 	github.com/dfuse-io/shutter v1.4.1-0.20200407040739-f908f9ab727f
 	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c // indirect
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
 	github.com/golang/protobuf v1.3.5 // indirect
+	github.com/google/cel-go v0.4.1
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/gorilla/mux v1.7.3
+	github.com/hamba/avro v1.0.0 // indirect
 	github.com/linkedin/goavro/v2 v2.9.7
 	github.com/magiconair/properties v1.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/viper v1.6.2
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	go.opencensus.io v0.22.3
 	go.uber.org/atomic v1.6.0
 	go.uber.org/automaxprocs v1.3.0
