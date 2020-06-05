@@ -117,8 +117,14 @@ func (q *archiveQuery) run() {
 	}
 
 	if q.pool.emptyResultsCache != nil {
-		indexIterator.LoadRoaring(q.bquery.Raw)
-		defer indexIterator.OptimizeAndPublishRoaring()
+		hash, err := q.bquery.Hash()
+		if err != nil {
+			zlog.Warn("error getting bquery hash", zap.Error(err))
+		} else {
+			zlog.Debug("loading roaring", zap.String("raw_query", q.bquery.Raw), zap.String("hash", hash))
+			indexIterator.LoadRoaring(hash)
+			defer indexIterator.OptimizeAndPublishRoaring()
+		}
 	}
 
 	wg := sync.WaitGroup{}

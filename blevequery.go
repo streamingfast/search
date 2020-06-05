@@ -15,6 +15,8 @@
 package search
 
 import (
+	"crypto/md5"
+	"encoding/json"
 	"fmt"
 
 	"github.com/blevesearch/bleve/search/query"
@@ -50,6 +52,14 @@ func NewParsedQuery(rawQuery string) (*BleveQuery, error) {
 	}
 
 	return bquery, nil
+}
+
+func (q *BleveQuery) Hash() (string, error) {
+	astJSON, err := json.Marshal(q.ast)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", md5.Sum(astJSON)), nil
 }
 
 func (q *BleveQuery) Parse() error {

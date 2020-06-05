@@ -15,7 +15,6 @@
 package archive
 
 import (
-	"crypto/md5"
 	"fmt"
 	"math"
 	"sync"
@@ -77,10 +76,9 @@ func (p *IndexPool) GetIndexIterator(lowBlockNum, highBlockNum uint64, sortDesc 
 	return it, nil
 }
 
-func (it *indexIterator) LoadRoaring(rawQuery string) {
+func (it *indexIterator) LoadRoaring(hash string) {
 	it.roar = roaring.New()
-	it.roarKey = fmt.Sprintf("%x", md5.Sum([]byte(rawQuery)))
-	zlog.Debug("loading roaring", zap.String("raw_query", rawQuery), zap.String("md5sum", it.roarKey))
+	it.roarKey = hash
 
 	err := it.roarCache.Get(it.roarKey, it.roar)
 	if err != nil {
