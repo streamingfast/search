@@ -2,7 +2,7 @@ package indexer_bigquery
 
 import (
 	"github.com/dfuse-io/bstream"
-	"github.com/hamba/avro"
+	"github.com/linkedin/goavro/v2"
 )
 
 type Mapper struct {
@@ -11,7 +11,7 @@ type Mapper struct {
 
 type BigQueryBlockMapper interface {
 	Map(block *bstream.Block) ([]map[string]interface{}, error)
-	GetCodec() avro.Schema
+	GetCodec() *goavro.Codec
 }
 
 func NewMapper(blockMapper BigQueryBlockMapper) (*Mapper, error) {
