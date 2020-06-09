@@ -54,7 +54,7 @@ func TestASTParser(t *testing.T) {
 		},
 		{
 			in:  `data.from:"eoscanadacom" (action:transfer OR action:issue OR action:matant) data.to:eoscanadacom data.mama:eoscarotte`,
-			out: `{"ands":[{"and":{"name":"data.from","qstr":"eoscanadacom"}},{"ors":[{"name":"action","str":"transfer"},{"name":"action","str":"issue"},{"name":"action","str":"matant"}]},{"and":{"name":"data.to","str":"eoscanadacom"}},{"and":{"name":"data.mama","str":"eoscarotte"}}]}`,
+			out: `{"ands":[{"ors":[{"name":"action","str":"issue"},{"name":"action","str":"matant"},{"name":"action","str":"transfer"}]},{"and":{"name":"data.from","qstr":"eoscanadacom"}},{"and":{"name":"data.mama","str":"eoscarotte"}},{"and":{"name":"data.to","str":"eoscanadacom"}}]}`,
 		},
 		{
 			in:  "(data.from:eoscanadacom OR data.to:eoscanadacom)",
@@ -78,7 +78,7 @@ func TestASTParser(t *testing.T) {
 		},
 		{
 			in:  "account:hello (receiver:world OR action:transfer)",
-			out: `{"ands":[{"and":{"name":"account","str":"hello"}},{"ors":[{"name":"receiver","str":"world"},{"name":"action","str":"transfer"}]}]}`,
+			out: `{"ands":[{"and":{"name":"account","str":"hello"}},{"ors":[{"name":"action","str":"transfer"},{"name":"receiver","str":"world"}]}]}`,
 		},
 		{
 			in:  "account:hello (account:hello OR account:world)",

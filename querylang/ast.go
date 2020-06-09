@@ -63,6 +63,7 @@ func (a *AST) ToBleve() query.Query {
 	}
 
 	out := query.NewConjunctionQuery(nil)
+
 	for _, expr := range a.AndExpr {
 		if expr.AndField != nil {
 			fieldQuery := expr.AndField.ToQuery()

@@ -47,32 +47,37 @@ func TestToBleveQuery(t *testing.T) {
 		},
 		{
 			in:          "receiver:eoscanadacom account:eoscanadacom",
-			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"receiver"},{"term":"eoscanadacom","field":"account"}]}`,
+			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"account"},{"term":"eoscanadacom","field":"receiver"}]}`,
+		},
+		{
+			in:          "account:eoscanadacom receiver:eoscanadacom",
+			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"account"},{"term":"eoscanadacom","field":"receiver"}]}`,
 		},
 		{
 			in:          "receiver:eoscanadacom (action:transfer OR action:issue)",
-			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"receiver"},{"disjuncts":[{"term":"transfer","field":"action"},{"term":"issue","field":"action"}],"min":1}]}`,
+			expectBleve: `{"conjuncts":[{"disjuncts":[{"term":"issue","field":"action"},{"term":"transfer","field":"action"}],"min":1},{"term":"eoscanadacom","field":"receiver"}]}`,
 		},
 		{
 			in:          "receiver:eoscanadacom -(action:transfer OR action:issue)",
-			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"receiver"},{"must_not":{"disjuncts":[{"disjuncts":[{"term":"transfer","field":"action"},{"term":"issue","field":"action"}],"min":1}],"min":0}}]}`,
+			expectBleve: `{"conjuncts":[{"must_not":{"disjuncts":[{"disjuncts":[{"term":"issue","field":"action"},{"term":"transfer","field":"action"}],"min":1}],"min":0}},{"term":"eoscanadacom","field":"receiver"}]}`,
 		},
 		{
 			in:          "-receiver:eoscanadacom (action:transfer OR action:issue)",
-			expectBleve: `{"conjuncts":[{"must_not":{"disjuncts":[{"term":"eoscanadacom","field":"receiver"}],"min":0}},{"disjuncts":[{"term":"transfer","field":"action"},{"term":"issue","field":"action"}],"min":1}]}`,
+			expectBleve: `{"conjuncts":[{"disjuncts":[{"term":"issue","field":"action"},{"term":"transfer","field":"action"}],"min":1},{"must_not":{"disjuncts":[{"term":"eoscanadacom","field":"receiver"}],"min":0}}]}`,
 		},
 		{
 			in: "receiver:eoscanadacom (action:transfer OR action:issue) account:eoscanadacom (data.from:eoscanadacom OR data.to:eoscanadacom)",
 			expectBleve: `{"conjuncts":[
-    {"term":"eoscanadacom","field":"receiver"},
-    {"disjuncts":[{"term":"transfer","field":"action"},
-                  {"term":"issue","field":"action"}],
-     "min":1},
-    {"term":"eoscanadacom","field":"account"},
-    {"disjuncts":[{"term":"eoscanadacom","field":"data.from"},
-                  {"term":"eoscanadacom","field":"data.to"}],
-     "min":1}]
-}`,
+		    {"term":"eoscanadacom","field":"account"},
+		    {"disjuncts":[{"term":"issue","field":"action"},
+		                  {"term":"transfer","field":"action"}],
+		     "min":1},
+		    {"disjuncts":[{"term":"eoscanadacom","field":"data.from"},
+		                  {"term":"eoscanadacom","field":"data.to"}],
+		     "min":1},
+		    {"term":"eoscanadacom","field":"receiver"}
+			]
+		}`,
 		},
 	}
 
