@@ -634,7 +634,7 @@ func (p *IndexPool) SetLowestServeableBlockNum(startBlockNum uint64) error {
 	p.readPoolLock.RLock()
 	defer p.readPoolLock.RUnlock()
 
-	if len(p.ReadPool) != 0 {
+	if len(p.ReadPool) == 0 {
 		p.LowestServeableBlockNum = startBlockNum
 		return nil
 	}
