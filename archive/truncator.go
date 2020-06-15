@@ -52,6 +52,7 @@ func (t *Truncator) attemptTruncation() {
 		if err != nil {
 			zlog.Error("unable to set lowest serveable block after truncating the index pool, not truncating pool",
 				zap.Uint64("target_truncate_block", t.targetTruncateBlock),
+				zap.Error(err),
 			)
 		} else {
 			t.indexPool.truncateBelow(t.targetTruncateBlock)

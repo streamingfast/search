@@ -570,10 +570,10 @@ func (p *IndexPool) buildWritableIndexFilePath(baseBlockNum uint64, suffix strin
 func (p *IndexPool) openReadOnly(baseBlockNum uint64) (*search.ShardIndex, error) {
 	path := p.getReadOnlyIndexFilePath(baseBlockNum)
 	idxer, err := scorch.NewScorch("data", map[string]interface{}{
-		"forceSegmentType": "zap",
+		"forceSegmentType":    "zap",
 		"forceSegmentVersion": 14,
-		"read_only": true,
-		"path":      path,
+		"read_only":           true,
+		"path":                path,
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating scorch index: %s", err)
@@ -631,20 +631,23 @@ func (p *IndexPool) GetLowestServeableBlockNum() uint64 {
 }
 
 func (p *IndexPool) SetLowestServeableBlockNum(startBlockNum uint64) error {
-	// TODO: use a read lock here??
 	p.readPoolLock.RLock()
 	defer p.readPoolLock.RUnlock()
 
 	if len(p.ReadPool) != 0 {
-		idx := p.ReadPool[0]
-		if idx.StartBlock != startBlockNum {
-			return fmt.Errorf("first read-only index (start-end: %d-%d) mis-aligned with proposed start block %d", idx.StartBlock, idx.EndBlock, startBlockNum)
-		}
+		p.LowestServeableBlockNum = startBlockNum
+		return nil
 	}
 
-	p.LowestServeableBlockNum = startBlockNum
+	// ensure that an index starts exactly on that serveableBlockNum
+	for _, idx := range p.ReadPool {
+		if idx.StartBlock == startBlockNum {
+			p.LowestServeableBlockNum = startBlockNum
+			return nil
+		}
+	}
+	return fmt.Errorf("read-only indices (first: %d ,last: %d) mis-aligned with proposed start block %d", p.ReadPool[0].StartBlock, p.ReadPool[len(p.ReadPool)-1].StartBlock, startBlockNum)
 
-	return nil
 }
 
 func (p *IndexPool) LowestServeableBlockNumAbove(blockNum uint64) uint64 {
