@@ -311,7 +311,7 @@ func Test_adjustQueryRange(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			bstream.GetProtocolFirstBlock = test.protocolFirstBlockNum
+			bstream.GetProtocolFirstStreamableBlock = test.protocolFirstBlockNum
 			assert.Equal(t, test.expectQueryRange, adjustQueryRange(test.queryRange))
 		})
 	}
