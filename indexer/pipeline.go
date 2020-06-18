@@ -56,7 +56,7 @@ func (m pipelineMode) String() string {
 }
 
 type Pipeline struct {
-	mapper       *search.Mapper
+	mapper       search.BlockMapper
 	indexer      *Indexer
 	mode         *atomic.Int32
 	catchUpStats *stats
@@ -78,13 +78,12 @@ type Pipeline struct {
 }
 
 func (i *Indexer) newPipeline(blockMapper search.BlockMapper, enableUpload, deleteAfterUpload bool) *Pipeline {
-	mapper, err := search.NewMapper(blockMapper)
-	if err != nil {
+	if err := blockMapper.Validate(); err != nil {
 		zlog.Panic(err.Error())
 	}
 
 	return &Pipeline{
-		mapper:            mapper,
+		mapper:            blockMapper,
 		indexer:           i,
 		shardSize:         i.shardSize,
 		writablePath:      i.writePath,
@@ -145,7 +144,7 @@ func (pipe *Pipeline) ProcessBlock(blk *bstream.Block, objWrap interface{}) erro
 
 		var docsList []*document.Document
 		if obj.Obj == nil { // was not preprocessed
-			preprocessedObj, err := pipe.mapper.PreprocessBlock(blk)
+			preprocessedObj, err := search.AsPreprocessBlock(pipe.mapper)(blk)
 			if err != nil {
 				return err
 			}

@@ -33,10 +33,12 @@ type BleveQuery struct {
 	FieldTransformer querylang.FieldTransformer
 	query            query.Query
 	FieldNames       []string
-	Validator        BleveQueryValdiator
+	Validator        BleveQueryValidator
 }
 
 func NewParsedQuery(rawQuery string) (*BleveQuery, error) {
+	// TODO: move this where it belongs?  This infers a global which
+	// is annoying (GetBleveQueryFactory)
 	bquery := GetBleveQueryFactory(rawQuery)
 
 	if err := bquery.Parse(); err != nil {
@@ -70,6 +72,8 @@ func (q *BleveQuery) Parse() error {
 
 	q.ast = query
 
+	// FIXME: this should belong to the ApplyTransforms and only be true in EOSIO land.
+	// NOTE TO SELF: perhaps we simply remove it today.. it was for transitioning.
 	if err := query.PurgeDeprecatedStatusField(); err != nil {
 		return fmt.Errorf("'status' field deprecated, only 'executed' actions are indexed nowadays (%s); see release notes", err)
 	}
@@ -96,6 +100,6 @@ func (q *BleveQuery) Validate() error {
 	return q.Validator.Validate(q)
 }
 
-type BleveQueryValdiator interface {
+type BleveQueryValidator interface {
 	Validate(q *BleveQuery) error
 }

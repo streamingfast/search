@@ -15,7 +15,6 @@
 package search
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -26,39 +25,22 @@ import (
 	"github.com/dfuse-io/bstream"
 )
 
-type Mapper struct {
-	mapper      *mapping.IndexMappingImpl
-	blockMapper BlockMapper
-}
-
 type BlockMapper interface {
-	Map(mapper *mapping.IndexMappingImpl, block *bstream.Block) ([]*document.Document, error)
-	IndexMapping() *mapping.IndexMappingImpl
+	MapToBleve(block *bstream.Block) ([]*document.Document, error)
+	Validate() error
 }
 
 const TimeFormatBleveID = "2006-01-02T15-04-05.000"
 
-func NewMapper(blockMapper BlockMapper) (*Mapper, error) {
-	m := blockMapper.IndexMapping()
+func AsPreprocessBlock(b BlockMapper) bstream.PreprocessFunc {
+	return func(blk *bstream.Block) (interface{}, error) {
+		batch, err := b.MapToBleve(blk)
+		if err != nil {
+			return nil, err
+		}
 
-	if err := m.Validate(); err != nil {
-		return nil, fmt.Errorf("validation of our mapper failed: %s", err)
+		return batch, nil
 	}
-
-	return &Mapper{mapper: m, blockMapper: blockMapper}, nil
-}
-
-func (m *Mapper) PreprocessBlock(blk *bstream.Block) (interface{}, error) {
-	return m.MapBlock(blk)
-}
-
-func (m *Mapper) MapBlock(blk *bstream.Block) ([]*document.Document, error) {
-	batch, err := m.blockMapper.Map(m.mapper, blk)
-	if err != nil {
-		return nil, err
-	}
-
-	return batch, nil
 }
 
 func trimZeroPrefix(in string) string {

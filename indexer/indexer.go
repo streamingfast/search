@@ -207,7 +207,7 @@ func (i *Indexer) BuildBatchPipeline(targetStartBlockNum, fileSourceStartBlockNu
 		i.blocksStore,
 		fileSourceStartBlockNum,
 		2,
-		pipe.mapper.PreprocessBlock,
+		search.AsPreprocessBlock(pipe.mapper),
 		forkableHandler,
 	)
 	if i.Verbose {

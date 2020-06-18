@@ -50,24 +50,23 @@ func (i *SingleIndex) Delete() {
 
 //PreIndexer is a bstream Preprocessor that returns the bleve object instead from a bstream.block
 type PreIndexer struct {
-	mapper          *Mapper
+	mapper          BlockMapper
 	liveIndexesPath string
 }
 
 func NewPreIndexer(blockMapper BlockMapper, liveIndexesPath string) *PreIndexer {
-	mapper, err := NewMapper(blockMapper)
-	if err != nil {
+	if err := blockMapper.Validate(); err != nil {
 		zlog.Panic(err.Error())
 	}
 
 	return &PreIndexer{
-		mapper:          mapper,
+		mapper:          blockMapper,
 		liveIndexesPath: liveIndexesPath,
 	}
 }
 
 func (i *PreIndexer) Preprocess(blk *bstream.Block) (interface{}, error) {
-	docsList, err := i.mapper.MapBlock(blk)
+	docsList, err := i.mapper.MapToBleve(blk)
 	if err != nil {
 		return nil, err
 	}
