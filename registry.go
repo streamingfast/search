@@ -7,7 +7,6 @@ import (
 var GetSearchMatchFactory func() SearchMatch
 var GetMatchCollector MatchCollector
 var GetBleveQueryFactory BleveQueryFactory
-var GetIndexedFieldsMap IndexedFieldsMapFunc
 
 func ValidateRegistry() error {
 	if GetMatchCollector == nil {
@@ -20,10 +19,6 @@ func ValidateRegistry() error {
 
 	if GetSearchMatchFactory == nil {
 		return fmt.Errorf("no search match factory set, check that you set `search.GetSearchMatchFactory`")
-	}
-
-	if GetIndexedFieldsMap == nil {
-		return fmt.Errorf("no indexed fields map func set, check that you set `search.GetIndexedFieldsMap`")
 	}
 
 	return nil

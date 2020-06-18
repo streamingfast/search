@@ -96,10 +96,10 @@ func (i *PreIndexer) openLiveIndex(blockNum uint64, blockID string) (*SingleInde
 	path := fmt.Sprintf(filepath.Join(i.liveIndexesPath, "%d-%s-%d.bleve"), blockNum, blockID, time.Now().UnixNano())
 	analysisQueue := index.NewAnalysisQueue(1)
 	idxer, err := scorch.NewScorch("data", map[string]interface{}{
-		"forceSegmentType": "zap",
+		"forceSegmentType":    "zap",
 		"forceSegmentVersion": 14,
-		"path":         path,
-		"unsafe_batch": true,
+		"path":                path,
+		"unsafe_batch":        true,
 	}, analysisQueue)
 
 	if err != nil {

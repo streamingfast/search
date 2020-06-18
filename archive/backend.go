@@ -93,19 +93,9 @@ func (b *ArchiveBackend) startServer() {
 	router := mux.NewRouter()
 
 	metricsRouter := router.PathPrefix("/").Subrouter()
-	coreRouter := router.PathPrefix("/").Subrouter()
 
 	// Metrics & health endpoints
 	metricsRouter.HandleFunc("/healthz", b.healthzHandler())
-
-	// Core endpoints
-	coreRouter.Use(openCensusMiddleware)
-	coreRouter.Use(loggingMiddleware)
-	coreRouter.Use(trackingMiddleware)
-
-	coreRouter.HandleFunc("/v0/search/indexed_fields", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(r.Context(), w, search.GetIndexedFieldsMap())
-	})
 
 	// HTTP
 	b.httpServer = &http.Server{Addr: b.httpListenAddr, Handler: router}

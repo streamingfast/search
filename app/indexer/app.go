@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dfuse-io/search/metrics"
-
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
@@ -28,6 +26,7 @@ import (
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/indexer"
+	"github.com/dfuse-io/search/metrics"
 	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
 )

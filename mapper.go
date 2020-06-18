@@ -19,10 +19,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blevesearch/bleve/document"
-
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/keyword"
+	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/dfuse-io/bstream"
 )
