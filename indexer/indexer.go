@@ -130,6 +130,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 			handler = bstream.NewBlockIDGate(startBlockRef.ID(), bstream.GateExclusive, h)
 			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockID(startBlockRef.ID()))
 		}
+		jsOptions = append(jsOptions, bstream.JoiningSourceName(fmt.Sprintf("indexer-js-%d", time.Now().Nanosecond())))
 
 		liveSourceFactory := bstream.SourceFactory(func(subHandler bstream.Handler) bstream.Source {
 			source := blockstream.NewSource(
@@ -139,6 +140,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 				subHandler,
 			)
 
+			source.SetName(fmt.Sprintf("indexer-ls-%d", time.Now().Nanosecond()))
 			// We will enable parallel reprocessing of live blocks, disabled to fix RAM usage
 			//			source.SetParallelPreproc(pipe.mapper.PreprocessBlock, 8)
 
@@ -155,6 +157,8 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 			)
 			if i.Verbose {
 				fs.SetLogger(zlog)
+			} else {
+				fs.Name = fmt.Sprintf("indexer-fs-%d", time.Now().Nanosecond())
 			}
 			return fs
 		})
@@ -212,6 +216,8 @@ func (i *Indexer) BuildBatchPipeline(targetStartBlockNum, fileSourceStartBlockNu
 	)
 	if i.Verbose {
 		fs.SetLogger(zlog)
+	} else {
+		fs.Name = fmt.Sprintf("indexer-fs-%d", time.Now().Nanosecond())
 	}
 
 	// note the indexer will listen for the source shutdown signal within the Launch() function

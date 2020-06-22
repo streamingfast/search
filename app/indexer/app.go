@@ -70,7 +70,7 @@ func New(config *Config, modules *Modules) *App {
 	}
 }
 
-func (a *App) nextLiveStartBlock() (targetStartBlock uint64, err error) {
+func (a *App) nextLiveStartBlock() (uint64, error) {
 	if a.config.StartBlock >= 0 {
 		return uint64(a.config.StartBlock), nil
 	}
@@ -85,9 +85,11 @@ func (a *App) nextLiveStartBlock() (targetStartBlock uint64, err error) {
 	if err != nil {
 		return 0, fmt.Errorf("fetching LIB with headinfo: %w", err)
 	}
+	if libRef.Num() < uint64(-a.config.StartBlock) {
+		return libRef.Num(), nil
+	}
 
-	targetStartBlock = uint64(int64(libRef.Num()) + a.config.StartBlock)
-	return
+	return uint64(int64(libRef.Num()) + a.config.StartBlock), nil
 }
 
 func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (targetStartBlock uint64, filesourceStartBlock uint64, previousIrreversibleID string, err error) {
@@ -152,6 +154,7 @@ func (a *App) Run() error {
 	if err != nil {
 		return err
 	}
+	zlog.Info("done resolving start block", zap.Uint64("target_start_block_num", targetStartBlockNum), zap.Uint64("filesource_start_block_num", filesourceStartBlockNum))
 
 	if a.config.EnableBatchMode {
 		zlog.Info("setting up indexing batch pipeline",

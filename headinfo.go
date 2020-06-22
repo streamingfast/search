@@ -17,22 +17,24 @@ package search
 import (
 	"context"
 
-	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	"github.com/dfuse-io/bstream"
+	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	"go.uber.org/zap"
 )
 
 func GetLibInfo(headinfoCli pbheadinfo.HeadInfoClient) (bstream.BlockRef, error) {
-	headResp, err := headinfoCli.GetHeadInfo(context.Background(), &pbheadinfo.HeadInfoRequest{})
+	headResp, err := headinfoCli.GetHeadInfo(context.Background(), &pbheadinfo.HeadInfoRequest{
+		Source: pbheadinfo.HeadInfoRequest_NETWORK,
+	})
+	if err != nil {
+		return nil, err
+	}
 	zlog.Debug("head info response",
 		zap.Uint64("lib_num", headResp.LibNum),
 		zap.String("lib_id", headResp.LibID),
 		zap.Uint64("head_num", headResp.HeadNum),
 		zap.String("head_id", headResp.HeadID),
 		zap.String("head_time", headResp.HeadTime.String()))
-	if err != nil {
-		return nil, err
-	}
 
 	return bstream.NewBlockRef(headResp.LibID, headResp.LibNum), nil
 }
