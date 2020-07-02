@@ -13,9 +13,9 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/dfuse-io/bstream v0.0.0-20200522154238-b71cafb7ad1a
+	github.com/dfuse-io/bstream v0.0.0-20200616115755-41eaed857d3b
 	github.com/dfuse-io/derr v0.0.0-20200406214256-c690655246a1
-	github.com/dfuse-io/dgrpc v0.0.0-20200406214416-6271093e544c
+	github.com/dfuse-io/dgrpc v0.0.0-20200615163546-b8380f15f7d8
 	github.com/dfuse-io/dmesh v0.0.0-20200427143025-f55305fa4b95
 	github.com/dfuse-io/dmetrics v0.0.0-20200406214800-499fc7b320ab
 	github.com/dfuse-io/dstore v0.1.0

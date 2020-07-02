@@ -112,6 +112,7 @@ func (i *Indexer) Bootstrap(startBlockNum uint64) error {
 }
 
 func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum uint64, previousIrreversibleID string, enableUpload bool, deleteAfterUpload bool) {
+	zlog.Info("building live pipeline", zap.Uint64("target_start_block_num", targetStartBlockNum), zap.Uint64("file_source_start_block_num", fileSourceStartBlockNum))
 	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
 
 	sf := bstream.SourceFromRefFactory(func(startBlockRef bstream.BlockRef, h bstream.Handler) bstream.Source {
@@ -163,9 +164,9 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 			return fs
 		})
 
-		protocolFirstBlock := bstream.GetProtocolFirstBlock
+		protocolFirstBlock := bstream.GetProtocolFirstStreamableBlock
 		if protocolFirstBlock > 0 {
-			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockNum(bstream.GetProtocolFirstBlock))
+			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockNum(bstream.GetProtocolFirstStreamableBlock))
 		}
 		js := bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, handler, jsOptions...)
 

@@ -34,10 +34,10 @@ import (
 
 func CheckIndexIntegrity(path string, shardSize uint64) (*indexMetaInfo, error) {
 	idx, err := scorch.NewScorch("data", map[string]interface{}{
-		"forceSegmentType": "zap",
+		"forceSegmentType":    "zap",
 		"forceSegmentVersion": 14,
-		"read_only": true,
-		"path":      path,
+		"read_only":           true,
+		"path":                path,
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("new scorch: %s", err)
@@ -116,13 +116,14 @@ func (i *indexMetaInfo) Validate(expectedShardSize uint64, path string) MultiErr
 	}
 
 	// Checking Block Num ordering and containing the full range
-	if uint64(len(i.OrderedBlockNum)) != expectedShardSize || (i.HighestBlockNum-i.LowestBlockNum) != uint64(expectedShardSize-1) {
-		if i.LowestBlockNum == bstream.GetProtocolFirstBlock && (i.HighestBlockNum-i.LowestBlockNum) == uint64(expectedShardSize-bstream.GetProtocolFirstBlock-1) {
+	if uint64(len(i.OrderedBlockNum)) != expectedShardSize || (i.HighestBlockNum-i.LowestBlockNum) != expectedShardSize-1 {
+		if i.LowestBlockNum == bstream.GetProtocolFirstStreamableBlock && (i.HighestBlockNum-i.LowestBlockNum) == expectedShardSize-bstream.GetProtocolFirstStreamableBlock-1 {
 			zlog.Debug("integrity check assuming protocol on first shard, passed",
-				zap.Uint64("protocol_first_block", bstream.GetProtocolFirstBlock),
+				zap.Uint64("protocol_first_block", bstream.GetProtocolFirstStreamableBlock),
 			)
 		} else {
-			errs = addError(fmt.Errorf("integrity check failed, expected %d results, actual %d, lowest: %d, highest: %d, protocol's lowest block: %d, path: %s", expectedShardSize, len(i.OrderedBlockNum), i.LowestBlockNum, i.HighestBlockNum, bstream.GetProtocolFirstBlock, path))
+			//integrity check failed, expected 25 results, actual 23, lowest: 2, highest: 24, protocol's lowest block: 1, path: /Users/cbillett/t/eth-data/dfuse-data/search/indexer/0000000000.bleve, 2) boundary check failed: missing start block boundary"}
+			errs = addError(fmt.Errorf("integrity check failed, expected %d results, actual %d, lowest: %d, highest: %d, protocol's lowest block: %d, path: %s", expectedShardSize, len(i.OrderedBlockNum), i.LowestBlockNum, i.HighestBlockNum, bstream.GetProtocolFirstStreamableBlock, path))
 		}
 	}
 	for j := 0; j < len(i.OrderedBlockNum)-1; j++ {
