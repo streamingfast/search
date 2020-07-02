@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
@@ -41,6 +42,7 @@ type Config struct {
 }
 
 type Modules struct {
+	BlockFilter func(blk *bstream.Block) error
 	BlockMapper search.BlockMapper
 	Dmesh       dmeshClient.SearchClient
 }
@@ -97,6 +99,7 @@ func (a *App) Run() error {
 		searchPeer,
 		a.config.GRPCListenAddr,
 		a.config.HttpListenAddr,
+		a.modules.BlockFilter,
 		a.modules.BlockMapper,
 		a.config.IndicesPath)
 

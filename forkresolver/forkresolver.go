@@ -47,6 +47,7 @@ type ForkResolver struct {
 	searchPeer        *dmesh.SearchPeer
 	dmeshClient       dmeshClient.SearchClient
 	blocksStore       dstore.Store
+	blockFilter       func(blk *bstream.Block) error
 	createSingleIndex func(blk *bstream.Block) (interface{}, error)
 }
 
@@ -56,16 +57,18 @@ func NewForkResolver(
 	searchPeer *dmesh.SearchPeer,
 	grpcListenAddr string,
 	httpListenAddr string,
-	mapper search.BlockMapper,
+	blockFilter func(blk *bstream.Block) error,
+	blockMapper search.BlockMapper,
 	indicesPath string) *ForkResolver {
 
-	p := search.NewPreIndexer(mapper, indicesPath)
+	p := search.NewPreIndexer(blockMapper, indicesPath)
 
 	return &ForkResolver{
 		Shutter:           shutter.New(),
 		dmeshClient:       dmeshClient,
 		searchPeer:        searchPeer,
 		blocksStore:       blocksStore,
+		blockFilter:       blockFilter,
 		grpcListenAddr:    grpcListenAddr,
 		httpListenAddr:    httpListenAddr,
 		createSingleIndex: p.Preprocess,
@@ -242,7 +245,14 @@ func (f *ForkResolver) getBlocksDescending(ctx context.Context, refs []*pbsearch
 		return nil
 	})
 
-	src := bstream.NewFileSource(f.blocksStore, lowest, 1, nil, h)
+	var filePreprocessor bstream.PreprocessFunc
+	if f.blockFilter != nil {
+		filePreprocessor = bstream.PreprocessFunc(func(blk *bstream.Block) (interface{}, error) {
+			return nil, f.blockFilter(blk)
+		})
+	}
+
+	src := bstream.NewFileSource(f.blocksStore, lowest, 1, filePreprocessor, h)
 	src.SetNotFoundCallback(func(missing uint64) { // ensure we don't stall here if request was for blocks future
 		zlog.Debug("missing block file, allowing some time to finish processing existing files before hard failing to prevent stalling", zap.Uint64("missing", missing), zap.Duration("shutdown_delay", ShutdownDelayOnFileNotFound))
 		time.Sleep(ShutdownDelayOnFileNotFound)

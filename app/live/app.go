@@ -50,10 +50,10 @@ type Config struct {
 	LiveIndexesPath          string        // /tmp/live/indexes", "Location for live indexes (ideally a ramdisk)
 	TruncationThreshold      int           //number of available dmesh peers that should serve irreversible blocks before we truncate them from this backend's memory
 	RealtimeTolerance        time.Duration // longest delay to consider this service as real-time(ready) on initialization
-
 }
 
 type Modules struct {
+	BlockFilter func(blk *bstream.Block) error
 	BlockMapper search.BlockMapper
 	Dmesh       dmeshClient.SearchClient
 }
@@ -141,6 +141,7 @@ func (a *App) Run() error {
 	zlog.Info("setting up subscription hub", zap.Uint64("start_block", startBlock.Num()))
 	err = lb.SetupSubscriptionHub(
 		startBlock,
+		a.modules.BlockFilter,
 		a.modules.BlockMapper,
 		blocksStore,
 		a.config.BlockstreamAddr,

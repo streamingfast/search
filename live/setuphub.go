@@ -30,6 +30,7 @@ import (
 
 func (b *LiveBackend) SetupSubscriptionHub(
 	startBlock bstream.BlockRef,
+	blockFilter func(blk *bstream.Block) error,
 	blockMapper search.BlockMapper,
 	blocksStore dstore.Store,
 	blockstreamAddr string,
@@ -54,8 +55,19 @@ func (b *LiveBackend) SetupSubscriptionHub(
 		return src
 	})
 
+	filePreprocessor := bstream.PreprocessFunc(func(blk *bstream.Block) (interface{}, error) {
+		if blockFilter != nil {
+			err := blockFilter(blk)
+			if err != nil {
+				return nil, fmt.Errorf("block filter: %w", err)
+			}
+		}
+
+		return preprocessor(blk)
+	})
+
 	archivedBlockSourceFactory := bstream.SourceFromNumFactory(func(startBlockNum uint64, h bstream.Handler) bstream.Source {
-		src := bstream.NewFileSource(blocksStore, startBlockNum, 1, preprocessor, h)
+		src := bstream.NewFileSource(blocksStore, startBlockNum, 1, filePreprocessor, h)
 		src.SetLogger(zlog)
 		return src
 	})

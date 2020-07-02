@@ -49,6 +49,7 @@ type Config struct {
 }
 
 type Modules struct {
+	BlockFilter        func(blk *bstream.Block) error
 	BlockMapper        search.BlockMapper
 	StartBlockResolver bstream.StartBlockResolver
 }
@@ -137,6 +138,7 @@ func (a *App) Run() error {
 		indexesStore,
 		blocksStore,
 		a.config.BlockstreamAddr,
+		a.modules.BlockFilter,
 		a.modules.BlockMapper,
 		a.config.WritablePath,
 		a.config.ShardSize,

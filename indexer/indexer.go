@@ -50,6 +50,7 @@ type Indexer struct {
 	indexesStore    dstore.Store
 	blocksStore     dstore.Store
 	blockstreamAddr string
+	blockFilter     func(blk *bstream.Block) error
 	blockMapper     search.BlockMapper
 
 	dfuseHooksActionName string
@@ -71,6 +72,7 @@ func NewIndexer(
 	indexesStore dstore.Store,
 	blocksStore dstore.Store,
 	blockstreamAddr string,
+	blockFilter func(blk *bstream.Block) error,
 	blockMapper search.BlockMapper,
 	writePath string,
 	shardSize uint64,
@@ -84,6 +86,7 @@ func NewIndexer(
 		indexesStore:    indexesStore,
 		blocksStore:     blocksStore,
 		blockstreamAddr: blockstreamAddr,
+		blockFilter:     blockFilter,
 		blockMapper:     blockMapper,
 		shardSize:       shardSize,
 		writePath:       writePath,
@@ -113,6 +116,13 @@ func (i *Indexer) Bootstrap(startBlockNum uint64) error {
 
 func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum uint64, previousIrreversibleID string, enableUpload bool, deleteAfterUpload bool) {
 	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
+
+	var filePreprocessor bstream.PreprocessFunc
+	if i.blockFilter != nil {
+		filePreprocessor = bstream.PreprocessFunc(func(blk *bstream.Block) (interface{}, error) {
+			return nil, i.blockFilter(blk)
+		})
+	}
 
 	sf := bstream.SourceFromRefFactory(func(startBlockRef bstream.BlockRef, h bstream.Handler) bstream.Source {
 		pipe.SetCatchUpMode()
@@ -151,8 +161,8 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 			fs := bstream.NewFileSource(
 				i.blocksStore,
 				startBlockNum,
-				2,   // always 2 download threads, ever
-				nil, //pipe.mapper.PreprocessBlock,
+				2, // always 2 download threads, ever
+				filePreprocessor,
 				subHandler,
 			)
 			if i.Verbose {
@@ -207,11 +217,23 @@ func (i *Indexer) BuildBatchPipeline(targetStartBlockNum, fileSourceStartBlockNu
 
 	forkableHandler := forkable.New(gate, options...)
 
+	mapperPreproc := search.AsPreprocessBlock(pipe.mapper)
+	filePreprocessor := bstream.PreprocessFunc(func(blk *bstream.Block) (interface{}, error) {
+		if i.blockFilter != nil {
+			err := i.blockFilter(blk)
+			if err != nil {
+				return nil, fmt.Errorf("block filter: %w", err)
+			}
+		}
+
+		return mapperPreproc(blk)
+	})
+
 	fs := bstream.NewFileSource(
 		i.blocksStore,
 		fileSourceStartBlockNum,
 		2,
-		search.AsPreprocessBlock(pipe.mapper),
+		filePreprocessor,
 		forkableHandler,
 	)
 	if i.Verbose {
