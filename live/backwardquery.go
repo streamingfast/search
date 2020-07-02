@@ -172,7 +172,7 @@ func (q *LiveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forka
 
 	postForkGate := bstream.NewBlockNumGate(q.Request.LowBlockNum, bstream.GateInclusive, handler)
 
-	if firstBlockRef.ID() == "" && firstBlockRef.Num() != bstream.GetProtocolFirstBlock {
+	if firstBlockRef.ID() == "" && firstBlockRef.Num() != bstream.GetProtocolFirstStreamableBlock {
 		zlog.Debug("firstBlockRef ID is not set on a live search call, this may affect performance of this search", zap.Uint64("first_block_ref_num", firstBlockRef.Num()))
 	}
 	options := []forkable.Option{
