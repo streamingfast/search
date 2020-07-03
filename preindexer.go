@@ -66,7 +66,7 @@ func NewPreIndexer(blockMapper BlockMapper, liveIndexesPath string) *PreIndexer 
 }
 
 func (i *PreIndexer) Preprocess(blk *bstream.Block) (interface{}, error) {
-	docsList, err := i.mapper.MapToBleve(blk)
+	docsList, err := i.mapper.Map(blk)
 	if err != nil {
 		return nil, err
 	}

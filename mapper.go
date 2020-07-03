@@ -26,7 +26,7 @@ import (
 )
 
 type BlockMapper interface {
-	MapToBleve(block *bstream.Block) ([]*document.Document, error)
+	Map(block *bstream.Block) ([]*document.Document, error)
 	Validate() error
 }
 
@@ -34,7 +34,7 @@ const TimeFormatBleveID = "2006-01-02T15-04-05.000"
 
 func AsPreprocessBlock(b BlockMapper) bstream.PreprocessFunc {
 	return func(blk *bstream.Block) (interface{}, error) {
-		batch, err := b.MapToBleve(blk)
+		batch, err := b.Map(blk)
 		if err != nil {
 			return nil, err
 		}
