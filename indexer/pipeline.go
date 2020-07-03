@@ -221,7 +221,7 @@ func (pipe *Pipeline) processIrreversibleBlock(blk *bstream.Block, docsList []*d
 		return CompletedError
 	}
 
-	isFirstBlock := blockNum == bstream.GetProtocolFirstBlock
+	isFirstBlock := blockNum == bstream.GetProtocolFirstStreamableBlock
 	isShardsFirstBlock := blockNum%pipe.shardSize == 0
 
 	if isFirstBlock || isShardsFirstBlock {

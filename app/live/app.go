@@ -174,8 +174,8 @@ func (a *App) Run() error {
 func startBlockFromDmesh(dmesh dmeshClient.SearchClient) bstream.BlockRef {
 	startBlock := live.GetMeshLIB(dmesh.Peers, 1)
 	if startBlock != nil {
-		if startBlock.Num() < 2 {
-			startBlock = bstream.NewBlockRef("", 2)
+		if startBlock.Num() < bstream.GetProtocolFirstStreamableBlock {
+			startBlock = bstream.NewBlockRef("", bstream.GetProtocolFirstStreamableBlock)
 		}
 		return startBlock
 	}

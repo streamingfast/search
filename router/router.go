@@ -253,12 +253,12 @@ func setComplete(trailer metadata.MD, sharder *queryExecutor) {
 }
 
 func adjustQueryRange(qr *QueryRange) *QueryRange {
-	if qr.lowBlockNum < bstream.GetProtocolFirstBlock {
+	if qr.lowBlockNum < bstream.GetProtocolFirstStreamableBlock {
 		zlog.Debug("adjusting query range for protocol",
 			zap.Uint64("low_block_num", qr.lowBlockNum),
-			zap.Uint64("adjusted_low_block_num", bstream.GetProtocolFirstBlock),
+			zap.Uint64("adjusted_low_block_num", bstream.GetProtocolFirstStreamableBlock),
 		)
-		qr.lowBlockNum = bstream.GetProtocolFirstBlock
+		qr.lowBlockNum = bstream.GetProtocolFirstStreamableBlock
 	}
 	return qr
 }

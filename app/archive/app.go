@@ -26,6 +26,7 @@ import (
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
+	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/archive"
@@ -49,6 +50,7 @@ type Config struct {
 	ShardSize               uint64        // indexes shard size
 	StartBlock              int64         // Start at given block num, the initial sync and polling
 	StopBlock               uint64        // Stop before given block num, the initial sync and polling
+	BlockmetaAddr           string        // grpc address to blockmeta to establish negative start block
 	SyncFromStore           bool          // Download missing indexes from --indexes-store before starting
 	SyncMaxIndexes          int           // Maximum number of indexes to sync. On production, use a very large number.
 	IndicesDLThreads        int           // Number of indices files to download from the GS input store and decompress in parallel. In prod, use large value like 20.
@@ -82,6 +84,9 @@ func New(config *Config, modules *Modules) *App {
 func (a *App) Run() error {
 	zlog.Info("running archive app ", zap.Reflect("config", a.config))
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	metrics.Register(metrics.ArchiveMetricsSet)
 
 	if err := search.ValidateRegistry(); err != nil {
@@ -112,16 +117,13 @@ func (a *App) Run() error {
 		return fmt.Errorf("publishing peer to dmesh: %w", err)
 	}
 
-	irrBlockNum := getSearchHighestIrr(a.modules.Dmesh.Peers())
-	zlog.Info("got highest irr block num", zap.Uint64("irr_block_num", irrBlockNum))
-	resolvedStartBlockNum, err := resolveStartBlock(a.config.StartBlock, a.config.ShardSize, irrBlockNum)
+	resolvedStartBlockNum, err := resolveStartBlock(ctx, a.config.StartBlock, a.config.ShardSize, a.config.BlockmetaAddr)
 	if err != nil {
 		return fmt.Errorf("cannot resolve start block num: %w", err)
 	}
 	zlog.Info("start block num resolved",
 		zap.Int64("start_block", a.config.StartBlock),
 		zap.Uint64("shard_size", a.config.ShardSize),
-		zap.Uint64("irr_block_num", irrBlockNum),
 		zap.Uint64("resolved_start_block_num", resolvedStartBlockNum))
 
 	var blockCount uint64
@@ -261,32 +263,36 @@ func (a *App) IsReady() bool {
 	return false
 }
 
-func resolveStartBlock(startBlock int64, shardSize, irrBlockNum uint64) (uint64, error) {
-	zlog.Info("resolving start block", zap.Int64("start_block", startBlock), zap.Uint64("shard_size", shardSize), zap.Uint64("irr_block_num", irrBlockNum))
+func resolveStartBlock(ctx context.Context, startBlock int64, shardSize uint64, blockmetaAddr string) (uint64, error) {
 	if startBlock >= 0 {
+		zlog.Info("resolving start block", zap.Int64("start_block", startBlock), zap.Uint64("shard_size", shardSize))
 		if startBlock%int64(shardSize) != 0 {
 			return 0, fmt.Errorf("start block %d misaligned with shard size %d", startBlock, shardSize)
 		} else {
 			return uint64(startBlock), nil
 		}
 	}
-	absoluteStartBlock := (int64(irrBlockNum) + startBlock)
+
+	zlog.Info("blockemta setup getting start block")
+	conn, err := dgrpc.NewInternalClient(blockmetaAddr)
+	if err != nil {
+		return 0, fmt.Errorf("getting blockmeta headinfo client: %w", err)
+	}
+	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
+	hi, err := headinfoCli.GetHeadInfo(ctx, &pbheadinfo.HeadInfoRequest{
+		Source: pbheadinfo.HeadInfoRequest_STREAM,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("getting blockmeta headinfo: %w", err)
+	}
+	zlog.Info("resolving start block", zap.Int64("start_block", startBlock), zap.Uint64("shard_size", shardSize), zap.Uint64("irr_block_num", hi.LibNum))
+
+	absoluteStartBlock := (int64(hi.LibNum) + startBlock)
 	absoluteStartBlock = absoluteStartBlock - (absoluteStartBlock % int64(shardSize))
 	if absoluteStartBlock < 0 {
 		return 0, fmt.Errorf("relative start block %d  is to large, cannot resolve to a negative start block %d", startBlock, absoluteStartBlock)
 	}
 	return uint64(absoluteStartBlock), nil
-}
-
-func getSearchHighestIrr(peers []*dmesh.SearchPeer) (irrBlock uint64) {
-	zlog.Info("getting highest irr block num", zap.Int("peer_count", len(peers)))
-	for _, peer := range peers {
-		zlog.Info("getting highest irr block num", zap.String("peer", peer.Host), zap.Uint64("irr_block_num", peer.IrrBlock))
-		if peer.IrrBlock > irrBlock {
-			irrBlock = peer.IrrBlock
-		}
-	}
-	return irrBlock
 }
 
 func warmupSearch(filepath string, firstIndexedBlock, lastIndexedBlock uint64, engine *archive.ArchiveBackend) error {

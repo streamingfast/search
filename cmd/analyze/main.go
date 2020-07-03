@@ -47,7 +47,7 @@ func analyzeRunE(cmd *cobra.Command, args []string) (err error) {
 		return fmt.Errorf("specify --shard-size or -s")
 	}
 
-	bstream.GetProtocolFirstBlock = uint64(protocolFirstBlock)
+	bstream.GetProtocolFirstStreamableBlock = uint64(protocolFirstBlock)
 
 	bleeveIndexPath := args[0]
 
@@ -65,7 +65,7 @@ func analyzeRunE(cmd *cobra.Command, args []string) (err error) {
 		zap.String("index", bleeveIndexPath),
 		zap.Uint64("base_block_num", bleeveIndexBaseBlock),
 		zap.Int("shard_size", shardSize),
-		zap.Uint64("protocol_first_block", bstream.GetProtocolFirstBlock),
+		zap.Uint64("protocol_first_block", bstream.GetProtocolFirstStreamableBlock),
 	)
 	metaInfo, errs := search.CheckIndexIntegrity(bleeveIndexPath, uint64(shardSize))
 	if errs != nil {
