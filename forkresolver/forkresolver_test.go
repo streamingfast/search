@@ -40,7 +40,7 @@ func Test_FetchMatchingBlocks(t *testing.T) {
 	)
 	//	store.SetFile("0000000200", []byte(`{"id":"dddddddd","num":200}`))
 
-	fr := NewForkResolver(store, nil, peer, ":9000", ":8080", &mockBlockMapper{}, "/tmp")
+	fr := NewForkResolver(store, nil, peer, ":9000", ":8080", nil, &mockBlockMapper{IndexMappingImpl: mapping.NewIndexMapping()}, "/tmp")
 	blocks, lib, err := fr.getBlocksDescending(context.Background(),
 		[]*pb.BlockRef{
 			{
@@ -72,12 +72,9 @@ func Test_FetchMatchingBlocks(t *testing.T) {
 }
 
 type mockBlockMapper struct {
+	*mapping.IndexMappingImpl
 }
 
-func (b *mockBlockMapper) Map(mapper *mapping.IndexMappingImpl, block *bstream.Block) ([]*document.Document, error) {
+func (b *mockBlockMapper) Map(block *bstream.Block) ([]*document.Document, error) {
 	panic("not implemented")
-}
-
-func (b *mockBlockMapper) IndexMapping() *mapping.IndexMappingImpl {
-	return mapping.NewIndexMapping()
 }
