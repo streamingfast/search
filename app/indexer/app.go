@@ -22,7 +22,6 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
-	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/indexer"
@@ -49,9 +48,9 @@ type Config struct {
 }
 
 type Modules struct {
-	BlockFilter        func(blk *bstream.Block) error
-	BlockMapper        search.BlockMapper
-	StartBlockResolver bstream.StartBlockResolver
+	BlockFilter func(blk *bstream.Block) error
+	BlockMapper search.BlockMapper
+	Tracker     *bstream.Tracker
 }
 
 var IndexerAppStartAborted = fmt.Errorf("getting irr block aborted by indexer application")
@@ -71,28 +70,6 @@ func New(config *Config, modules *Modules) *App {
 	}
 }
 
-func (a *App) nextLiveStartBlock() (uint64, error) {
-	if a.config.StartBlock >= 0 {
-		return uint64(a.config.StartBlock), nil
-	}
-
-	zlog.Info("trying to resolve negative startblock from blockstream headinfo")
-	conn, err := dgrpc.NewInternalClient(a.config.BlockstreamAddr)
-	if err != nil {
-		return 0, fmt.Errorf("getting headinfo client: %w", err)
-	}
-	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
-	libRef, err := search.GetLibInfo(headinfoCli)
-	if err != nil {
-		return 0, fmt.Errorf("fetching LIB with headinfo: %w", err)
-	}
-	if libRef.Num() < uint64(-a.config.StartBlock) {
-		return libRef.Num(), nil
-	}
-
-	return uint64(int64(libRef.Num()) + a.config.StartBlock), nil
-}
-
 func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (targetStartBlock uint64, filesourceStartBlock uint64, previousIrreversibleID string, err error) {
 	if a.config.EnableBatchMode {
 		if a.config.StartBlock < 0 {
@@ -100,18 +77,15 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 		}
 		targetStartBlock = uint64(a.config.StartBlock)
 	} else {
-		if a.config.StartBlock >= 0 {
-			targetStartBlock = uint64(a.config.StartBlock)
-		} else {
-			targetStartBlock, err = a.nextLiveStartBlock()
-			if err != nil {
-				return
-			}
+		targetStartBlock, err = a.modules.Tracker.ResolveRelativeBlock(ctx, a.config.StartBlock, bstream.NetworkLIBTarget)
+		if err != nil {
+			return
 		}
-		targetStartBlock = dexer.NextBaseBlockAfter(targetStartBlock) // skip already processed indexes
+
+		targetStartBlock = dexer.NextUnindexedBlockPast(targetStartBlock)
 	}
 
-	filesourceStartBlock, previousIrreversibleID, err = a.modules.StartBlockResolver.Resolve(ctx, targetStartBlock)
+	filesourceStartBlock, previousIrreversibleID, err = a.modules.Tracker.ResolveStartBlock(ctx, targetStartBlock)
 	return
 }
 

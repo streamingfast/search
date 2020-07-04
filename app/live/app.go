@@ -119,7 +119,7 @@ func (a *App) Run() error {
 		return fmt.Errorf("getting blockmeta headinfo client: %w", err)
 	}
 	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
-	zlog.Info("blockemta setup getting start block")
+	zlog.Info("blockmeta setup getting start block")
 	startBlock, err := a.getStartBlock(a.modules.Dmesh, headinfoCli)
 	if err != nil {
 		if err == LiveAppStartAborted {
@@ -202,7 +202,15 @@ func tweakStartBlock(blk bstream.BlockRef) bstream.BlockRef {
 	return blk
 }
 
-func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadinfo.HeadInfoClient) (startBlockRef bstream.BlockRef, err error) {
+func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, blockmetaCli pbheadinfo.HeadInfoClient) (startBlockRef bstream.BlockRef, err error) {
+
+	tracker := bstream.NewTracker(a.config.StartBlockDriftTolerance) // NOTE ?: compute based on archive shard size?
+	// AddResolver, going to blockmeta or blocks logs, as before.. see other implementations.
+	// AddGetter(Target("highest-archive-head")), the getter should go through all the ARCHIVE (non-live), and return the HIGHEST HEAD/LIB from those archives.
+	// AddGetter(NetworkHeadTarget, LIBBlockRefGetter(blockmetaAddr, NETWORK))
+	// AddGetter(NetworkHeadTarget, LIBBlockRefGetter(blockmetaAddr, STREAM)) // second best thing
+
+	ctx := context.Background()
 
 	sleepTime := time.Duration(0)
 	for {
@@ -212,47 +220,73 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 			return
 		}
 		time.Sleep(sleepTime)
-		sleepTime = time.Second * 2
+		sleepTime = time.Second * 5
 
-		fromArchive := startBlockFromDmesh(dmesh)
-		if fromArchive == nil {
-			zlog.Info("waiting for archive to appear before starting")
+		networkNearDmesh, err := tracker.IsNear(ctx, bstream.Target("highest-archive-head"), bstream.NetworkHeadTarget)
+		if err == bstream.ErrTrackerBlockNotFound {
+			zlog.Info("archive-head to network head delta not found yet")
+			continue
+		}
+		if err != nil {
+			zlog.Info("failed checking if archive-head is near network head", zap.Error(err))
 			continue
 		}
 
-		fromStream := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_STREAM)
-		if fromStream == nil {
-			zlog.Info("waiting for headinfo service to appear before starting")
+		if !networkNearDmesh {
 			continue
 		}
 
-		fromNetwork := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_NETWORK)
-		if fromNetwork == nil {
-			if fromStream.Num() >= fromArchive.Num() && fromStream.Num()-fromArchive.Num() < a.config.StartBlockDriftTolerance {
-				zlog.Warn("no network head info, but archive head is close to stream LIB, starting from archive LIB")
-				return fromArchive, nil
-			}
-			zlog.Debug("waiting because network LIB is unavailable and archive is too far from stream LIB")
+		startBlock, err := tracker.Get(ctx, bstream.Target("highest-archive-head"))
+		if err != nil {
+			zlog.Info("failed getting dmesh peers's highest block", zap.Error(err))
 			continue
 		}
-
-		// archive close to network
-		if fromNetwork.Num() >= fromArchive.Num() && fromNetwork.Num()-fromArchive.Num() < a.config.StartBlockDriftTolerance {
-			zlog.Info("starting from the lib from search archive")
-			return fromArchive, nil
+		start, lib, err := tracker.ResolveStartBlock(ctx, startBlock.Num())
+		if err != nil {
+			zlog.Info("failed resolving start block", zap.Error(err))
+			continue
 		}
+		return bstream.NewBlockRef(lib, start), nil
 
-		// starting from stream Not Implemented: this requires a different tail truncator based on irreversible block at HEAD-x ...
-		//if fromNetwork.Num() >= fromStream.Num() && fromNetwork.Num()-fromStream.Num() < a.config.StartBlockDriftTolerance {
-		//	zlog.Warn("archive search is late, starting from stream LIB", zap.Uint64("stream_libnum", fromStream.Num()), zap.Uint64("archive_libnum", fromArchive.Num()))
-		//	return fromStream, false, nil
-		//}
-		zlog.Info("waiting, no start block condition matched",
-			zap.Stringer("archive_head_block", fromArchive),
-			zap.Stringer("network_head_block", fromNetwork),
-			zap.Stringer("stream_head_block", fromStream),
-			zap.Uint64("start_block_tolerance", a.config.StartBlockDriftTolerance),
-		)
+		// fromArchive := startBlockFromDmesh(dmesh)
+		// if fromArchive == nil {
+		// 	zlog.Info("waiting for archive to appear before starting")
+		// 	continue
+		// }
+
+		// fromStream := libFromHeadInfo(blockmetaCli, pbheadinfo.HeadInfoRequest_STREAM)
+		// if fromStream == nil {
+		// 	zlog.Info("waiting for headinfo service to appear before starting")
+		// 	continue
+		// }
+
+		// fromNetwork := libFromHeadInfo(blockmetaCli, pbheadinfo.HeadInfoRequest_NETWORK)
+		// if fromNetwork == nil {
+		// 	if fromStream.Num() >= fromArchive.Num() && fromStream.Num()-fromArchive.Num() < a.config.StartBlockDriftTolerance {
+		// 		zlog.Warn("no network head info, but archive head is close to stream LIB, starting from archive LIB")
+		// 		return fromArchive, nil
+		// 	}
+		// 	zlog.Debug("waiting because network LIB is unavailable and archive is too far from stream LIB")
+		// 	continue
+		// }
+
+		// // archive close to network
+		// if fromNetwork.Num() >= fromArchive.Num() && fromNetwork.Num()-fromArchive.Num() < a.config.StartBlockDriftTolerance {
+		// 	zlog.Info("starting from the lib from search archive")
+		// 	return fromArchive, nil
+		// }
+
+		// // starting from stream Not Implemented: this requires a different tail truncator based on irreversible block at HEAD-x ...
+		// //if fromNetwork.Num() >= fromStream.Num() && fromNetwork.Num()-fromStream.Num() < a.config.StartBlockDriftTolerance {
+		// //	zlog.Warn("archive search is late, starting from stream LIB", zap.Uint64("stream_libnum", fromStream.Num()), zap.Uint64("archive_libnum", fromArchive.Num()))
+		// //	return fromStream, false, nil
+		// //}
+		// zlog.Info("waiting, no start block condition matched",
+		// 	zap.Stringer("archive_head_block", fromArchive),
+		// 	zap.Stringer("network_head_block", fromNetwork),
+		// 	zap.Stringer("stream_head_block", fromStream),
+		// 	zap.Uint64("start_block_tolerance", a.config.StartBlockDriftTolerance),
+		// )
 	}
 }
 

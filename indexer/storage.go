@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (i *Indexer) NextBaseBlockAfter(startBlockNum uint64) (nextStartBlockNum uint64) {
+func (i *Indexer) NextUnindexedBlockPast(startBlockNum uint64) (nextStartBlockNum uint64) {
 	nextStartBlockNum = startBlockNum
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
