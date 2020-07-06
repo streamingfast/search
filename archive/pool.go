@@ -95,7 +95,9 @@ func (p *IndexPool) SetReady() error {
 
 	return nil
 }
-
+func (p *IndexPool) IsEmpty() bool {
+	return len(p.ReadPool) == 0
+}
 func (p *IndexPool) PollRemoteIndices(startBlockNum, stopBlockNum uint64) {
 	startIndexingAt := startBlockNum
 	lastIndexLoaded := p.LastReadOnlyIndexedBlock()
@@ -147,10 +149,13 @@ func (p *IndexPool) PollRemoteIndices(startBlockNum, stopBlockNum uint64) {
 
 		headBlockNumber.SetUint64(idx.EndBlock)
 
-		// PUBLISHER HERE
 		zlog.Info("index file successfully retrieved",
 			zap.String("basefile", indexBaseFile),
 			zap.Uint64("start_block", idx.StartBlock))
+
+		if !p.IsReady() {
+			p.SetReady()
+		}
 	}
 }
 

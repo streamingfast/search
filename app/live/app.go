@@ -171,12 +171,12 @@ func (a *App) Run() error {
 }
 
 func startBlockFromDmesh(dmesh dmeshClient.SearchClient) bstream.BlockRef {
-	startBlock := live.GetMeshLIB(dmesh.Peers, 1)
-	if startBlock != nil {
-		if startBlock.Num() < bstream.GetProtocolFirstStreamableBlock {
-			startBlock = bstream.NewBlockRef("", bstream.GetProtocolFirstStreamableBlock)
+	libBlock := live.GetMeshLIB(dmesh.Peers, 1)
+	zlog.Info("lib from dmesh", zap.Reflect("start_block", libBlock))
+	if libBlock != nil {
+		if libBlock.Num() < bstream.GetProtocolFirstStreamableBlock {
+			return bstream.NewBlockRef("", bstream.GetProtocolFirstStreamableBlock)
 		}
-		return startBlock
 	}
 	return nil
 }
@@ -213,13 +213,19 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 		time.Sleep(sleepTime)
 		sleepTime = time.Second * 2
 
+		fromStream := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_STREAM)
+		if fromStream != nil && fromStream.ID() != "" && fromStream.Num() < a.config.StartBlockDriftTolerance {
+			// we are at the beginning of the chain we can start if block num < the drift tolerance
+			zlog.Info("stream at the beginning of chain, archive not ready using stream", zap.Uint64("block_num", fromStream.Num()), zap.String("block_id", fromStream.ID()))
+			return fromStream, nil
+		}
+
 		fromArchive := startBlockFromDmesh(dmesh)
 		if fromArchive == nil {
 			zlog.Info("waiting for archive to appear before starting")
 			continue
 		}
 
-		fromStream := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_STREAM)
 		if fromStream == nil {
 			zlog.Info("waiting for headinfo service to appear before starting")
 			continue
@@ -227,7 +233,8 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 
 		fromNetwork := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_NETWORK)
 		if fromNetwork == nil {
-			if fromStream.Num() >= fromArchive.Num() && fromStream.Num()-fromArchive.Num() < a.config.StartBlockDriftTolerance {
+			if fromStream.Num() >= fromArchive.Num() &&
+				fromStream.Num()-fromArchive.Num() < a.config.StartBlockDriftTolerance {
 				zlog.Warn("no network head info, but archive head is close to stream LIB, starting from archive LIB")
 				return fromArchive, nil
 			}

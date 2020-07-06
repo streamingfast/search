@@ -94,7 +94,7 @@ func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub
 		fObj := obj.(*forkable.ForkableObject)
 		switch fObj.Step {
 		case forkable.StepNew:
-			zlog.Debug("step new in launchBlockProgressPeerPublishing")
+			zlog.Debug("step new in launchBlockProgressPeerPublishing", zap.Uint64("block_num", blk.Num()))
 			headBlockTimeDrift.SetBlockTime(blk.Time())
 
 			b.searchPeer.Locked(func() {
@@ -105,7 +105,7 @@ func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub
 			headBlockNumber.SetUint64(blk.Num())
 
 		case forkable.StepIrreversible:
-			zlog.Debug("step irreversible in launchBlockProgressPeerPublishing")
+			zlog.Debug("step irreversible in launchBlockProgressPeerPublishing", zap.Uint64("block_num", blk.Num()))
 
 			b.searchPeer.Locked(func() {
 				b.searchPeer.IrrBlock = blk.Number
