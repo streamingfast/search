@@ -173,6 +173,9 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockNum(bstream.GetProtocolFirstStreamableBlock))
 		}
 
+		// TODO: make the hard-coded `200` customizatble... or using a ChainConfig where the number of blocks represents a certain duration or something
+		jsOptions = append(jsOptions, bstream.JoiningSourceLiveTracker(200, bstream.HeadBlockRefGetter(i.blockstreamAddr)))
+
 		return bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, handler, jsOptions...)
 	})
 
