@@ -48,3 +48,5 @@ require (
 )
 
 go 1.13
+
+replace github.com/dfuse-io/bstream => /Users/cbillett/devel/dfuse/go/bstream

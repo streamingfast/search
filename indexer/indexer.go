@@ -168,7 +168,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		if protocolFirstBlock > 0 {
 			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockNum(bstream.GetProtocolFirstStreamableBlock))
 		}
-		js := bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, handler, jsOptions...)
+		js := bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, handler, zlog, jsOptions...)
 
 		return js
 	})

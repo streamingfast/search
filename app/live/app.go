@@ -27,6 +27,7 @@ import (
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
+	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
@@ -114,13 +115,19 @@ func (a *App) Run() error {
 	lb := livebackend.New(a.modules.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
 
 	zlog.Info("setting up blockmeta")
+
 	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)
 	if err != nil {
 		return fmt.Errorf("getting blockmeta headinfo client: %w", err)
 	}
 	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
+	blockMetaClient, err := pbblockmeta.NewClient(a.config.BlockmetaAddr)
+	if err != nil {
+		return fmt.Errorf("new block meta client: %w", err)
+	}
+
 	zlog.Info("blockemta setup getting start block")
-	startBlock, err := a.getStartBlock(a.modules.Dmesh, headinfoCli)
+	startBlock, err := a.getStartBlock(context.Background(), a.modules.Dmesh, headinfoCli, blockMetaClient)
 	if err != nil {
 		if err == LiveAppStartAborted {
 			return nil
@@ -201,7 +208,7 @@ func tweakStartBlock(blk bstream.BlockRef) bstream.BlockRef {
 	return blk
 }
 
-func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadinfo.HeadInfoClient) (startBlockRef bstream.BlockRef, err error) {
+func (a *App) getStartBlock(ctx context.Context, dmesh dmeshClient.SearchClient, headinfoCli pbheadinfo.HeadInfoClient, blockIDClient *pbblockmeta.Client) (startBlockRef bstream.BlockRef, err error) {
 
 	sleepTime := time.Duration(0)
 	for {
@@ -216,8 +223,13 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, headinfoCli pbheadin
 		fromStream := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_STREAM)
 		if fromStream != nil && fromStream.ID() != "" && fromStream.Num() < a.config.StartBlockDriftTolerance {
 			// we are at the beginning of the chain we can start if block num < the drift tolerance
-			zlog.Info("stream at the beginning of chain, archive not ready using stream", zap.Uint64("block_num", fromStream.Num()), zap.String("block_id", fromStream.ID()))
-			return fromStream, nil
+			zlog.Info("stream at the beginning of chain, archive not ready, using stream", zap.Uint64("block_num", fromStream.Num()), zap.String("block_id", fromStream.ID()))
+			idResponse, err := blockIDClient.BlockNumToID(ctx, bstream.GetProtocolFirstStreamableBlock)
+			if err != nil {
+				zlog.Error("failed to get block id for", zap.Uint64("first_streamable_block", bstream.GetProtocolFirstStreamableBlock), zap.Error(err))
+				continue
+			}
+			return bstream.NewBlockRef(idResponse.Id, bstream.GetProtocolFirstStreamableBlock), nil
 		}
 
 		fromArchive := startBlockFromDmesh(dmesh)
