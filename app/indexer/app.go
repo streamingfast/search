@@ -110,7 +110,7 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 		targetStartBlock = dexer.NextBaseBlockAfter(targetStartBlock) // skip already processed indexes
 	}
 
-	filesourceStartBlock, previousIrreversibleID, err = a.modules.StartBlockResolver.Resolve(ctx, targetStartBlock)
+	filesourceStartBlock, previousIrreversibleID, err = a.modules.StartBlockResolver(ctx, targetStartBlock)
 	return
 }
 

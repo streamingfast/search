@@ -119,19 +119,18 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		pipe.SetCatchUpMode()
 
 		var handler bstream.Handler
-		var jsOptions []bstream.JoiningSourceOption
 		var startBlockNum uint64
 
+		jsOptions := []bstream.JoiningSourceOption{bstream.JoiningSourceLogger(zlog)}
 		firstCall := startBlockRef.ID() == ""
 		if firstCall {
 			startBlockNum = fileSourceStartBlockNum
 			handler = h
 		} else {
 			startBlockNum = startBlockRef.Num()
-			handler = bstream.NewBlockIDGate(startBlockRef.ID(), bstream.GateExclusive, h)
+			handler = bstream.NewBlockIDGate(startBlockRef.ID(), bstream.GateExclusive, h, bstream.GateOptionWithLogger(zlog))
 			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockID(startBlockRef.ID()))
 		}
-		jsOptions = append(jsOptions, bstream.JoiningSourceName(fmt.Sprintf("indexer-js-%d", time.Now().Nanosecond())))
 
 		liveSourceFactory := bstream.SourceFactory(func(subHandler bstream.Handler) bstream.Source {
 			source := blockstream.NewSource(
@@ -139,11 +138,11 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 				i.blockstreamAddr,
 				250,
 				subHandler,
+				blockstream.WithRequester("search-indexer"),
 			)
 
-			source.SetName(fmt.Sprintf("indexer-ls-%d", time.Now().Nanosecond()))
 			// We will enable parallel reprocessing of live blocks, disabled to fix RAM usage
-			//			source.SetParallelPreproc(pipe.mapper.PreprocessBlock, 8)
+			// source.SetParallelPreproc(pipe.mapper.PreprocessBlock, 8)
 
 			return source
 		})
@@ -156,11 +155,6 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 				nil, //pipe.mapper.PreprocessBlock,
 				subHandler,
 			)
-			if i.Verbose {
-				fs.SetLogger(zlog)
-			} else {
-				fs.Name = fmt.Sprintf("indexer-fs-%d", time.Now().Nanosecond())
-			}
 			return fs
 		})
 
@@ -168,25 +162,25 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		if protocolFirstBlock > 0 {
 			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockNum(bstream.GetProtocolFirstStreamableBlock))
 		}
-		js := bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, handler, zlog, jsOptions...)
 
-		return js
+		return bstream.NewJoiningSource(fileSourceFactory, liveSourceFactory, handler, jsOptions...)
 	})
 
 	options := []forkable.Option{
+		forkable.WithLogger(zlog),
 		forkable.WithFilters(forkable.StepNew | forkable.StepIrreversible),
 	}
 	if previousIrreversibleID != "" {
 		options = append(options, forkable.WithInclusiveLIB(bstream.NewBlockRef(previousIrreversibleID, fileSourceStartBlockNum)))
 	}
 
-	gate := forkable.NewIrreversibleBlockNumGate(targetStartBlockNum, bstream.GateInclusive, pipe)
+	gate := forkable.NewIrreversibleBlockNumGate(targetStartBlockNum, bstream.GateInclusive, pipe, bstream.GateOptionWithLogger(zlog))
 
 	forkableHandler := forkable.New(gate, options...)
 
 	// note the indexer will listen for the source shutdown signal within the Launch() function
 	// hence we do not need to propagate the shutdown signal originating from said source to the indexer. (i.e es.OnTerminating(....))
-	es := bstream.NewEternalSource(sf, forkableHandler)
+	es := bstream.NewEternalSource(sf, forkableHandler, bstream.EternalSourceWithLogger(zlog))
 
 	i.source = es
 	i.pipeline = pipe
@@ -195,10 +189,11 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 func (i *Indexer) BuildBatchPipeline(targetStartBlockNum, fileSourceStartBlockNum uint64, previousIrreversibleID string, enableUpload bool, deleteAfterUpload bool) {
 	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
 
-	gate := bstream.NewBlockNumGate(targetStartBlockNum, bstream.GateInclusive, pipe)
+	gate := bstream.NewBlockNumGate(targetStartBlockNum, bstream.GateInclusive, pipe, bstream.GateOptionWithLogger(zlog))
 	gate.MaxHoldOff = 0
 
 	options := []forkable.Option{
+		forkable.WithLogger(zlog),
 		forkable.WithFilters(forkable.StepIrreversible),
 	}
 
@@ -214,12 +209,8 @@ func (i *Indexer) BuildBatchPipeline(targetStartBlockNum, fileSourceStartBlockNu
 		2,
 		pipe.mapper.PreprocessBlock,
 		forkableHandler,
+		bstream.FileSourceWithLogger(zlog),
 	)
-	if i.Verbose {
-		fs.SetLogger(zlog)
-	} else {
-		fs.Name = fmt.Sprintf("indexer-fs-%d", time.Now().Nanosecond())
-	}
 
 	// note the indexer will listen for the source shutdown signal within the Launch() function
 	// hence we do not need to propagate the shutdown signal originating from said source to the indexer. (i.e fs.OnTerminating(....))

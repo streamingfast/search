@@ -48,27 +48,26 @@ func (b *LiveBackend) SetupSubscriptionHub(
 	// realtime tolerance... ouch
 	preprocessor := bstream.PreprocessFunc(p.Preprocess)
 
-	bstreamFactory := bstream.SourceFromNumFactory(func(_ uint64, h bstream.Handler) bstream.Source {
-		src := blockstream.NewSource(context.Background(), blockstreamAddr, 300, bstream.NewPreprocessor(preprocessor, h))
+	liveSourceFactory := bstream.SourceFromNumFactory(func(_ uint64, h bstream.Handler) bstream.Source {
+		src := blockstream.NewSource(context.Background(), blockstreamAddr, 300, bstream.NewPreprocessor(preprocessor, h), blockstream.WithRequester("search-live"))
 		src.SetParallelPreproc(preprocessor, 8)
 		return src
 	})
 
-	archivedBlockSourceFactory := bstream.SourceFromNumFactory(func(startBlockNum uint64, h bstream.Handler) bstream.Source {
-		src := bstream.NewFileSource(blocksStore, startBlockNum, 1, preprocessor, h)
-		src.SetLogger(zlog)
-		return src
+	fileSourceFactory := bstream.SourceFromNumFactory(func(startBlockNum uint64, h bstream.Handler) bstream.Source {
+		return bstream.NewFileSource(blocksStore, startBlockNum, 1, preprocessor, h)
 	})
 
-	buffer := bstream.NewBuffer("archive-hub")
+	logger := zlog.Named("hub")
+	buffer := bstream.NewBuffer("archive-hub", logger)
 	tailManager := NewTailManager(b.dmeshClient.Peers, b.dmeshClient, b.searchPeer, buffer, 300, truncationThreshold, startBlock)
 	subscriptionHub, err := hub.NewSubscriptionHub(
 		startBlock.Num(), // condition it needs to be 2 or greater
 		buffer,
 		tailManager.TailLock,
-		archivedBlockSourceFactory,
-		bstreamFactory,
-		zlog,
+		fileSourceFactory,
+		liveSourceFactory,
+		hub.Withlogger(logger),
 		hub.WithRealtimeTolerance(realtimeTolerance),
 		hub.WithSourceChannelSize(1000), // FIXME: we should not need this, but when the live kicks in, we receive too many blocks at once on the progressPeerPublishing...
 		// maybe an option on the hub to "skip blocks if the channel is full" should apply, but that would be only on that specific subscription
@@ -121,7 +120,7 @@ func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub
 		return nil
 	})
 
-	fk := forkable.New(dmeshHandler, forkable.WithFilters(forkable.StepNew|forkable.StepIrreversible))
+	fk := forkable.New(dmeshHandler, forkable.WithLogger(zlog), forkable.WithFilters(forkable.StepNew|forkable.StepIrreversible))
 	src := hub.NewSource(fk, 0)
 
 	b.OnTerminating(src.Shutdown)
