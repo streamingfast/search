@@ -206,7 +206,8 @@ func (a *App) getStartBlock(dmesh dmeshClient.SearchClient, blockmetaCli pbheadi
 
 	tracker := bstream.NewTracker(a.config.StartBlockDriftTolerance) // NOTE ?: compute based on archive shard size?
 	// AddResolver, going to blockmeta or blocks logs, as before.. see other implementations.
-	// AddGetter(Target("highest-archive-head")), the getter should go through all the ARCHIVE (non-live), and return the HIGHEST HEAD/LIB from those archives.
+	// AddGetter(Target("highest-archive-head"), dmesh.FetchHeadFromTier("t12")), the getter should go through all the ARCHIVE (non-live), and return the HIGHEST HEAD/LIB from those archives.
+	// AddGetter(Target("highest-archive-head"), staticGetter(0)), the getter should go through all the ARCHIVE (non-live), and return the HIGHEST HEAD/LIB from those archives.
 	// AddGetter(NetworkHeadTarget, LIBBlockRefGetter(blockmetaAddr, NETWORK))
 	// AddGetter(NetworkHeadTarget, LIBBlockRefGetter(blockmetaAddr, STREAM)) // second best thing
 
