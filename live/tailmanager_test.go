@@ -76,7 +76,7 @@ func TestTailManagerTruncateTwice(t *testing.T) {
 			name:             "does not truncate on lock",
 			initialTailBlock: 10,
 			searchPeers: []*dmesh.SearchPeer{
-				&dmesh.SearchPeer{
+				{
 					GenericPeer: dmesh.GenericPeer{
 						Ready: true,
 					},
@@ -104,7 +104,7 @@ func TestTailManagerTruncateTwice(t *testing.T) {
 			name:             "truncates on no lock",
 			initialTailBlock: 10,
 			searchPeers: []*dmesh.SearchPeer{
-				&dmesh.SearchPeer{
+				{
 					GenericPeer: dmesh.GenericPeer{
 						Ready: true,
 					},
@@ -132,7 +132,7 @@ func TestTailManagerTruncateTwice(t *testing.T) {
 			name:             "does not truncate when buffer too small ",
 			initialTailBlock: 10,
 			searchPeers: []*dmesh.SearchPeer{
-				&dmesh.SearchPeer{
+				{
 					GenericPeer: dmesh.GenericPeer{
 						Ready: true,
 					},
@@ -160,14 +160,14 @@ func TestTailManagerTruncateTwice(t *testing.T) {
 			name:             "ignores unready or non-moving archives",
 			initialTailBlock: 10,
 			searchPeers: []*dmesh.SearchPeer{
-				&dmesh.SearchPeer{
+				{
 					GenericPeer: dmesh.GenericPeer{
 						Ready: false,
 					},
 					BlockRangeData: dmesh.NewTestBlockRangeData(1, 11, 11),
 					HasMovingHead:  true,
 				},
-				&dmesh.SearchPeer{
+				{
 					GenericPeer: dmesh.GenericPeer{
 						Ready: true,
 					},
@@ -201,7 +201,7 @@ func TestTailManagerTruncateTwice(t *testing.T) {
 			getSearchPeersFunc := func() []*dmesh.SearchPeer {
 				return test.searchPeers
 			}
-			buffer := bstream.NewBuffer("test TailManager")
+			buffer := bstream.NewBuffer("test TailManager", zlog)
 			for _, blk := range test.initialBufferContent {
 				buffer.AppendHead(blk)
 			}

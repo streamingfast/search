@@ -214,9 +214,11 @@ func (a *App) Run() error {
 		}
 	}
 
-	err = indexPool.SetReady()
-	if err != nil {
-		return fmt.Errorf("setting ready: %w", err)
+	if !indexPool.IsEmpty() {
+		err = indexPool.SetReady()
+		if err != nil {
+			return fmt.Errorf("setting ready: %w", err)
+		}
 	}
 
 	gs, err := dgrpc.NewInternalClient(a.config.GRPCListenAddr)

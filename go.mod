@@ -13,7 +13,7 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/dfuse-io/bstream v0.0.2-0.20200703210323-f92a36d42ed3
+	github.com/dfuse-io/bstream v0.0.2-0.20200707183302-64e1a90497ea
 	github.com/dfuse-io/derr v0.0.0-20200406214256-c690655246a1
 	github.com/dfuse-io/dgrpc v0.0.0-20200615163546-b8380f15f7d8
 	github.com/dfuse-io/dmesh v0.0.0-20200427143025-f55305fa4b95
@@ -25,7 +25,6 @@ require (
 	github.com/facebookgo/ensure v0.0.0-20200202191622-63f1cf65ac4c // indirect
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/subset v0.0.0-20200203212716-c811ad88dec4 // indirect
-	github.com/golang/protobuf v1.3.5 // indirect
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/jmhodges/levigo v1.0.0 // indirect
