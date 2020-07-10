@@ -180,13 +180,17 @@ func (a *App) Run() error {
 }
 
 func startBlockFromDmesh(dmesh dmeshClient.SearchClient) bstream.BlockRef {
+	zlog.Info("start block from dmesh", zap.Int("peer count", len(dmesh.Peers())))
 	libBlock := live.GetMeshLIB(dmesh.Peers, 1)
-	zlog.Info("lib from dmesh", zap.Reflect("start_block", libBlock))
 	if libBlock != nil {
+		zlog.Info("lib from dmesh", zap.Uint64("block_num", libBlock.Num()), zap.String("block_id", libBlock.ID()))
 		if libBlock.Num() < bstream.GetProtocolFirstStreamableBlock {
 			return bstream.NewBlockRef("", bstream.GetProtocolFirstStreamableBlock)
 		}
 	}
+
+	zlog.Info("lib from dmesh was nil")
+
 	return nil
 }
 func libFromHeadInfo(headinfoCli pbheadinfo.HeadInfoClient, source pbheadinfo.HeadInfoRequest_Source) bstream.BlockRef {
