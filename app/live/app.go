@@ -223,6 +223,11 @@ func (a *App) getStartBlock(ctx context.Context, dmesh dmeshClient.SearchClient,
 		sleepTime = time.Second * 2
 
 		fromStream := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_STREAM)
+		if fromStream == nil {
+			zlog.Info("lib from head info was nil")
+		} else {
+			zlog.Info("lib from head info", zap.Uint64("block_num", fromStream.Num()), zap.String("block_id", fromStream.String()))
+		}
 		if fromStream != nil && fromStream.ID() != "" && fromStream.Num() < a.config.StartBlockDriftTolerance {
 			// we are at the beginning of the chain we can start if block num < the drift tolerance
 			zlog.Info("stream at the beginning of chain, archive not ready, using stream", zap.Uint64("block_num", fromStream.Num()), zap.String("block_id", fromStream.ID()))
@@ -236,7 +241,7 @@ func (a *App) getStartBlock(ctx context.Context, dmesh dmeshClient.SearchClient,
 
 		fromArchive := startBlockFromDmesh(dmesh)
 		if fromArchive == nil {
-			zlog.Info("waiting for archive to appear before starting")
+			zlog.Info("waiting for archive to appear before starting", zap.Uint64("start_block_tolerance", a.config.StartBlockDriftTolerance))
 			continue
 		}
 
