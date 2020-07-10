@@ -187,6 +187,7 @@ func startBlockFromDmesh(dmesh dmeshClient.SearchClient) bstream.BlockRef {
 		if libBlock.Num() < bstream.GetProtocolFirstStreamableBlock {
 			return bstream.NewBlockRef("", bstream.GetProtocolFirstStreamableBlock)
 		}
+		return libBlock
 	}
 
 	zlog.Info("lib from dmesh was nil")
