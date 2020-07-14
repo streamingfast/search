@@ -238,7 +238,7 @@ func (a *App) getStartBlock(ctx context.Context, dmesh dmeshClient.SearchClient,
 			zlog.Info("stream at the beginning of chain, archive not ready, using stream", zap.Uint64("block_num", fromStream.Num()), zap.String("block_id", fromStream.ID()))
 			idResponse, err := blockIDClient.BlockNumToID(ctx, bstream.GetProtocolFirstStreamableBlock)
 			if err != nil {
-				zlog.Error("failed to get block id for", zap.Uint64("first_streamable_block", bstream.GetProtocolFirstStreamableBlock), zap.Error(err))
+				zlog.Warn("failed to get block id for, retrying...", zap.Uint64("first_streamable_block", bstream.GetProtocolFirstStreamableBlock), zap.Error(err))
 				continue
 			}
 			return bstream.NewBlockRef(idResponse.Id, bstream.GetProtocolFirstStreamableBlock), nil
