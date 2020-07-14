@@ -117,10 +117,12 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 			}
 		}
 		targetStartBlock = dexer.NextBaseBlockAfter(targetStartBlock) // skip already processed indexes
-
 	}
 
 	filesourceStartBlock, previousIrreversibleID, err = a.modules.Tracker.ResolveStartBlock(ctx, targetStartBlock)
+	if err != nil {
+		err = fmt.Errorf("tacker: failed to resolve start block: %w", err)
+	}
 	return
 }
 
@@ -161,11 +163,20 @@ func (a *App) Run() error {
 	a.OnTerminating(func(_ error) { cancel() })
 
 	zlog.Info("resolving start block...")
-	targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, err := a.resolveStartBlock(ctx, dexer)
-	if err != nil {
-		return err
+	var targetStartBlockNum, filesourceStartBlockNum uint64
+	var previousIrreversibleID string
+
+	for {
+		var e error
+		targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, e = a.resolveStartBlock(ctx, dexer)
+		if e != nil {
+			zlog.Warn("failed to resolve start block, retrying", zap.Error(e))
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		zlog.Info("done resolving start block", zap.Uint64("target_start_block_num", targetStartBlockNum), zap.Uint64("filesource_start_block_num", filesourceStartBlockNum))
+		break
 	}
-	zlog.Info("done resolving start block", zap.Uint64("target_start_block_num", targetStartBlockNum), zap.Uint64("filesource_start_block_num", filesourceStartBlockNum))
 
 	if a.config.EnableBatchMode {
 		zlog.Info("setting up indexing batch pipeline",
