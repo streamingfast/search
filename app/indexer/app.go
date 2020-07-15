@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
-
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"

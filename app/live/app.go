@@ -228,9 +228,12 @@ func (a *App) getStartLIB(ctx context.Context, dmesh dmeshClient.SearchClient, h
 		sleepTime = time.Second * 2
 
 		// StreamHeadBlockRefGetter(headinfoCli)
-		archiveLIB, networkLIB, isNear := a.modules.Tracker.IsNearWithResults(search.DmeshArchiveLIBTarget, bstream.NetworkLIBTarget)
+		archiveLIB, _, isNear, err := a.modules.Tracker.IsNearWithResults(ctx, search.DmeshArchiveLIBTarget, bstream.NetworkLIBTarget)
+		if err != nil {
+			continue
+		}
 		if !isNear {
-			time.Sleep(1 * time.Minute)
+			time.Sleep(30 * time.Second)
 			continue
 		}
 
