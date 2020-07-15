@@ -58,6 +58,7 @@ type Modules struct {
 	BlockFilter func(blk *bstream.Block) error
 	BlockMapper search.BlockMapper
 	Dmesh       dmeshClient.SearchClient
+	Tracker     *bstream.Tracker
 }
 
 var LiveAppStartAborted = fmt.Errorf("getting start block aborted by live application")
@@ -127,8 +128,8 @@ func (a *App) Run() error {
 		return fmt.Errorf("new block meta client: %w", err)
 	}
 
-	zlog.Info("blockemta setup getting start block")
-	startBlock, err := a.getStartBlock(context.Background(), a.modules.Dmesh, headinfoCli, blockMetaClient)
+	zlog.Info("blockmeta setup getting start block")
+	startLIB, err := a.getStartLIB(context.Background(), a.modules.Dmesh, headinfoCli, blockMetaClient)
 	if err != nil {
 		if err == LiveAppStartAborted {
 			return nil
@@ -136,19 +137,19 @@ func (a *App) Run() error {
 		return err
 	}
 	//FIXME the tail manager should have two modes of working: 1) based on archive and 2) based on a buffer length, in case the archive has never met its lower bound
-	if startBlock == nil {
+	if startLIB == nil {
 		zlog.Info("live got a nil start block")
 		return nil
 	}
 
 	zlog.Info("search live resolved start block",
-		zap.String("start_block_id", startBlock.ID()),
-		zap.Uint64("start_block_num", startBlock.Num()),
+		zap.String("start_lib_id", startLIB.ID()),
+		zap.Uint64("start_lib_num", startLIB.Num()),
 	)
 
-	zlog.Info("setting up subscription hub", zap.Uint64("start_block", startBlock.Num()))
+	zlog.Info("setting up subscription hub", zap.Uint64("start_block", startLIB.Num()))
 	err = lb.SetupSubscriptionHub(
-		startBlock,
+		startLIB,
 		a.modules.BlockFilter,
 		a.modules.BlockMapper,
 		blocksStore,
@@ -215,27 +216,26 @@ func tweakStartBlock(blk bstream.BlockRef) bstream.BlockRef {
 	return blk
 }
 
-func (a *App) getStartBlock(ctx context.Context, dmesh dmeshClient.SearchClient, headinfoCli pbheadinfo.HeadInfoClient, blockIDClient *pbblockmeta.Client) (startBlockRef bstream.BlockRef, err error) {
-
+func (a *App) getStartLIB(ctx context.Context, dmesh dmeshClient.SearchClient, headinfoCli pbheadinfo.HeadInfoClient, blockIDClient *pbblockmeta.Client) (startBlockRef bstream.BlockRef, err error) {
 	sleepTime := time.Duration(0)
 	for {
 		if a.IsTerminating() {
-			zlog.Info("leaving getStartBlock because app is terminating")
+			zlog.Info("leaving getStartLIB because app is terminating")
 			err = LiveAppStartAborted
 			return
 		}
 		time.Sleep(sleepTime)
 		sleepTime = time.Second * 2
 
-		fromStream := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_STREAM)
-		if fromStream == nil {
-			zlog.Info("lib from head info was nil")
-		} else {
-			zlog.Info("lib from head info", zap.Uint64("block_num", fromStream.Num()), zap.String("block_id", fromStream.String()))
+		// StreamHeadBlockRefGetter(headinfoCli)
+		archiveLIB, networkLIB, isNear := a.modules.Tracker.IsNearWithResults(search.DmeshArchiveLIBTarget, bstream.NetworkLIBTarget)
+		if !isNear {
+			time.Sleep(1 * time.Minute)
+			continue
 		}
-		if fromStream != nil && fromStream.ID() != "" && fromStream.Num() < a.config.StartBlockDriftTolerance {
-			// we are at the beginning of the chain we can start if block num < the drift tolerance
-			zlog.Info("stream at the beginning of chain, archive not ready, using stream", zap.Uint64("block_num", fromStream.Num()), zap.String("block_id", fromStream.ID()))
+
+		if archiveLIB == nil {
+			zlog.Info("stream at the beginning of chain, archive not ready, using network lib")
 			idResponse, err := blockIDClient.BlockNumToID(ctx, bstream.GetProtocolFirstStreamableBlock)
 			if err != nil {
 				zlog.Warn("failed to get block id for, retrying...", zap.Uint64("first_streamable_block", bstream.GetProtocolFirstStreamableBlock), zap.Error(err))
@@ -243,46 +243,7 @@ func (a *App) getStartBlock(ctx context.Context, dmesh dmeshClient.SearchClient,
 			}
 			return bstream.NewBlockRef(idResponse.Id, bstream.GetProtocolFirstStreamableBlock), nil
 		}
-
-		fromArchive := startBlockFromDmesh(dmesh)
-		if fromArchive == nil {
-			zlog.Info("waiting for archive to appear before starting", zap.Uint64("start_block_tolerance", a.config.StartBlockDriftTolerance))
-			continue
-		}
-
-		if fromStream == nil {
-			zlog.Info("waiting for headinfo service to appear before starting")
-			continue
-		}
-
-		fromNetwork := libFromHeadInfo(headinfoCli, pbheadinfo.HeadInfoRequest_NETWORK)
-		if fromNetwork == nil {
-			if fromStream.Num() >= fromArchive.Num() &&
-				fromStream.Num()-fromArchive.Num() < a.config.StartBlockDriftTolerance {
-				zlog.Warn("no network head info, but archive head is close to stream LIB, starting from archive LIB")
-				return fromArchive, nil
-			}
-			zlog.Debug("waiting because network LIB is unavailable and archive is too far from stream LIB")
-			continue
-		}
-
-		// archive close to network
-		if fromNetwork.Num() >= fromArchive.Num() && fromNetwork.Num()-fromArchive.Num() < a.config.StartBlockDriftTolerance {
-			zlog.Info("starting from the lib from search archive")
-			return fromArchive, nil
-		}
-
-		// starting from stream Not Implemented: this requires a different tail truncator based on irreversible block at HEAD-x ...
-		//if fromNetwork.Num() >= fromStream.Num() && fromNetwork.Num()-fromStream.Num() < a.config.StartBlockDriftTolerance {
-		//	zlog.Warn("archive search is late, starting from stream LIB", zap.Uint64("stream_libnum", fromStream.Num()), zap.Uint64("archive_libnum", fromArchive.Num()))
-		//	return fromStream, false, nil
-		//}
-		zlog.Info("waiting, no start block condition matched",
-			zap.Stringer("archive_head_block", fromArchive),
-			zap.Stringer("network_head_block", fromNetwork),
-			zap.Stringer("stream_head_block", fromStream),
-			zap.Uint64("start_block_tolerance", a.config.StartBlockDriftTolerance),
-		)
+		return archiveLIB, nil
 	}
 }
 

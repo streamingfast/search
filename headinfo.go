@@ -23,6 +23,7 @@ import (
 )
 
 func GetLibInfo(headinfoCli pbheadinfo.HeadInfoClient) (bstream.BlockRef, error) {
+	// TODO: superseded by Tracker and `bstream.NetworkLIBBlockRefGetter`
 	headResp, err := headinfoCli.GetHeadInfo(context.Background(), &pbheadinfo.HeadInfoRequest{
 		Source: pbheadinfo.HeadInfoRequest_NETWORK,
 	})
