@@ -20,20 +20,18 @@ import (
 	"os"
 	"time"
 
-	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-
-	"github.com/dfuse-io/search/metrics"
-
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
+	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/live"
 	livebackend "github.com/dfuse-io/search/live"
+	"github.com/dfuse-io/search/metrics"
 	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
 )
@@ -58,7 +56,7 @@ type Modules struct {
 	BlockFilter func(blk *bstream.Block) error
 	BlockMapper search.BlockMapper
 	Dmesh       dmeshClient.SearchClient
-	Tracker     *bstream.Tracker
+	Tracker     *bstream.Tracker // Prepared with StartBlockResolvers.
 }
 
 var LiveAppStartAborted = fmt.Errorf("getting start block aborted by live application")
@@ -117,19 +115,18 @@ func (a *App) Run() error {
 	lb := livebackend.New(a.modules.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
 
 	zlog.Info("setting up blockmeta")
-
-	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)
-	if err != nil {
-		return fmt.Errorf("getting blockmeta headinfo client: %w", err)
-	}
-	headinfoCli := pbheadinfo.NewHeadInfoClient(conn)
 	blockMetaClient, err := pbblockmeta.NewClient(a.config.BlockmetaAddr)
 	if err != nil {
 		return fmt.Errorf("new block meta client: %w", err)
 	}
 
+	tracker := a.modules.Tracker.Clone()
+	tracker.SetNearBlocksCount(int64(a.config.StartBlockDriftTolerance))
+	tracker.AddGetter(search.DmeshArchiveLIBTarget, search.DmeshHighestArchiveBlockRefGetter(a.modules.Dmesh.Peers, 1))
+	tracker.AddGetter(bstream.NetworkLIBTarget, bstream.HighestBlockRefGetter(bstream.StreamLIBBlockRefGetter(a.config.BlockstreamAddr), bstream.NetworkLIBBlockRefGetter(a.config.BlockmetaAddr)))
+
 	zlog.Info("blockmeta setup getting start block")
-	startLIB, err := a.getStartLIB(context.Background(), a.modules.Dmesh, headinfoCli, blockMetaClient)
+	startLIB, err := a.getStartLIB(tracker, blockMetaClient)
 	if err != nil {
 		if err == LiveAppStartAborted {
 			return nil
@@ -216,7 +213,10 @@ func tweakStartBlock(blk bstream.BlockRef) bstream.BlockRef {
 	return blk
 }
 
-func (a *App) getStartLIB(ctx context.Context, dmesh dmeshClient.SearchClient, headinfoCli pbheadinfo.HeadInfoClient, blockIDClient *pbblockmeta.Client) (startBlockRef bstream.BlockRef, err error) {
+func (a *App) getStartLIB(tracker *bstream.Tracker, blockIDClient *pbblockmeta.Client) (startBlockRef bstream.BlockRef, err error) {
+
+	ctx := context.Background()
+
 	sleepTime := time.Duration(0)
 	for {
 		if a.IsTerminating() {
@@ -227,7 +227,6 @@ func (a *App) getStartLIB(ctx context.Context, dmesh dmeshClient.SearchClient, h
 		time.Sleep(sleepTime)
 		sleepTime = time.Second * 2
 
-		// StreamHeadBlockRefGetter(headinfoCli)
 		archiveLIB, _, isNear, err := a.modules.Tracker.IsNearWithResults(ctx, search.DmeshArchiveLIBTarget, bstream.NetworkLIBTarget)
 		if err != nil {
 			continue
