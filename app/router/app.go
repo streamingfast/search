@@ -25,7 +25,6 @@ import (
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/search"
 	"github.com/dfuse-io/search/router"
 	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
@@ -64,9 +63,10 @@ func (a *App) Run() error {
 
 	metrics.Register(metrics.RouterMetricSet)
 
-	if err := search.ValidateRegistry(); err != nil {
-		return err
-	}
+	// TODO: the router does not need the information in registry
+	//if err := search.ValidateRegistry(); err != nil {
+	//	return err
+	//}
 
 	zlog.Info("starting dmesh")
 	err := a.modules.Dmesh.Start(context.Background(), []string{
