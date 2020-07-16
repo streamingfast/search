@@ -227,12 +227,14 @@ func (a *App) getStartLIB(tracker *bstream.Tracker, blockIDClient *pbblockmeta.C
 		time.Sleep(sleepTime)
 		sleepTime = time.Second * 2
 
-		archiveLIB, _, isNear, err := a.modules.Tracker.IsNearWithResults(ctx, search.DmeshArchiveLIBTarget, bstream.NetworkLIBTarget)
+		archiveLIB, _, isNear, err := tracker.IsNearWithResults(ctx, search.DmeshArchiveLIBTarget, bstream.NetworkLIBTarget)
 		if err != nil {
+			zlog.Warn("failed to get is near with results", zap.Error(err))
 			continue
 		}
 		if !isNear {
-			time.Sleep(30 * time.Second)
+			zlog.Info("not near, will retry", zap.Reflect("archive_lib", archiveLIB))
+			time.Sleep(1 * time.Second)
 			continue
 		}
 
