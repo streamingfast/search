@@ -48,6 +48,7 @@ type Config struct {
 	LiveIndexesPath          string        // /tmp/live/indexes", "Location for live indexes (ideally a ramdisk)
 	TruncationThreshold      int           //number of available dmesh peers that should serve irreversible blocks before we truncate them from this backend's memory
 	RealtimeTolerance        time.Duration // longest delay to consider this service as real-time(ready) on initialization
+	PreProcConcurrentThreads int
 }
 
 type Modules struct {
@@ -153,6 +154,7 @@ func (a *App) Run() error {
 		a.config.LiveIndexesPath,
 		a.config.RealtimeTolerance,
 		a.config.TruncationThreshold,
+		a.config.PreProcConcurrentThreads,
 	)
 	if err != nil {
 		return fmt.Errorf("setting up subscription hub: %w", err)

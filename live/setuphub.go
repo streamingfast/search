@@ -37,6 +37,7 @@ func (b *LiveBackend) SetupSubscriptionHub(
 	liveIndexesPath string,
 	realtimeTolerance time.Duration,
 	truncationThreshold int,
+	preProcConcurrentThreads int,
 ) error {
 	zlog.Info("setting up subscription hub")
 
@@ -51,7 +52,7 @@ func (b *LiveBackend) SetupSubscriptionHub(
 
 	liveSourceFactory := bstream.SourceFromNumFactory(func(_ uint64, h bstream.Handler) bstream.Source {
 		src := blockstream.NewSource(context.Background(), blockstreamAddr, 300, bstream.NewPreprocessor(preprocessor, h), blockstream.WithRequester("search-live"))
-		src.SetParallelPreproc(preprocessor, 8)
+		src.SetParallelPreproc(preprocessor, preProcConcurrentThreads)
 		return src
 	})
 
