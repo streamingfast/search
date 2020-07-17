@@ -26,10 +26,8 @@ import (
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
 	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search"
-	"github.com/dfuse-io/search/live"
 	livebackend "github.com/dfuse-io/search/live"
 	"github.com/dfuse-io/search/metrics"
 	"github.com/dfuse-io/shutter"
@@ -123,7 +121,8 @@ func (a *App) Run() error {
 	tracker := a.modules.Tracker.Clone()
 	tracker.SetNearBlocksCount(int64(a.config.StartBlockDriftTolerance))
 	tracker.AddGetter(search.DmeshArchiveLIBTarget, search.DmeshHighestArchiveBlockRefGetter(a.modules.Dmesh.Peers, 1))
-	tracker.AddGetter(bstream.NetworkLIBTarget, bstream.HighestBlockRefGetter(bstream.StreamLIBBlockRefGetter(a.config.BlockstreamAddr), bstream.NetworkLIBBlockRefGetter(a.config.BlockmetaAddr)))
+	//tracker.AddGetter(bstream.NetworkLIBTarget, bstream.HighestBlockRefGetter(bstream.StreamLIBBlockRefGetter(a.config.BlockstreamAddr), bstream.NetworkLIBBlockRefGetter(a.config.BlockmetaAddr)))
+	tracker.AddGetter(bstream.NetworkLIBTarget, bstream.NetworkLIBBlockRefGetter(a.config.BlockmetaAddr))
 
 	zlog.Info("blockmeta setup getting start block")
 	startLIB, err := a.getStartLIB(tracker, blockMetaClient)
@@ -175,42 +174,6 @@ func (a *App) Run() error {
 	}()
 
 	return nil
-}
-
-func startBlockFromDmesh(dmesh dmeshClient.SearchClient) bstream.BlockRef {
-	zlog.Info("start block from dmesh", zap.Int("peer count", len(dmesh.Peers())))
-	libBlock := live.GetMeshLIB(dmesh.Peers, 1)
-	if libBlock != nil {
-		zlog.Info("lib from dmesh", zap.Uint64("block_num", libBlock.Num()), zap.String("block_id", libBlock.ID()))
-		if libBlock.Num() < bstream.GetProtocolFirstStreamableBlock {
-			return bstream.NewBlockRef("", bstream.GetProtocolFirstStreamableBlock)
-		}
-		return libBlock
-	}
-
-	zlog.Info("lib from dmesh was nil")
-
-	return nil
-}
-func libFromHeadInfo(headinfoCli pbheadinfo.HeadInfoClient, source pbheadinfo.HeadInfoRequest_Source) bstream.BlockRef {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	streamInfo, err := headinfoCli.GetHeadInfo(ctx, &pbheadinfo.HeadInfoRequest{
-		Source: source,
-	})
-	if err != nil {
-		zlog.Debug("cannot get lib from headinfo", zap.Error(err))
-		return nil
-	}
-
-	return bstream.NewBlockRef(streamInfo.LibID, streamInfo.LibNum)
-}
-
-func tweakStartBlock(blk bstream.BlockRef) bstream.BlockRef {
-	if blk.Num() < 2 {
-		return bstream.NewBlockRef("", 2)
-	}
-	return blk
 }
 
 func (a *App) getStartLIB(tracker *bstream.Tracker, blockIDClient *pbblockmeta.Client) (startBlockRef bstream.BlockRef, err error) {
