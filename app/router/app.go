@@ -23,7 +23,7 @@ import (
 
 	"github.com/dfuse-io/dgrpc"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
-	"github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
+	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/search/router"
 	"github.com/dfuse-io/shutter"
@@ -111,7 +111,6 @@ func (a *App) IsReady() bool {
 
 	resp, err := a.readinessProbe.Check(ctx, &pbhealth.HealthCheckRequest{})
 	if err != nil {
-		zlog.Info("readiness probe error", zap.Error(err))
 		return false
 	}
 

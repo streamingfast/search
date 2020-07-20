@@ -225,7 +225,6 @@ func (a *App) IsReady() bool {
 
 	resp, err := a.readinessProbe.Check(ctx, &pbhealth.HealthCheckRequest{})
 	if err != nil {
-		zlog.Info("readiness probe error", zap.Error(err))
 		return false
 	}
 
