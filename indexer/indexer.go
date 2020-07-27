@@ -118,9 +118,9 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 	zlog.Info("building live pipeline", zap.Uint64("target_start_block_num", targetStartBlockNum), zap.Uint64("file_source_start_block_num", fileSourceStartBlockNum))
 	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
 
-	var filePreprocessor bstream.PreprocessFunc
+	var preprocessor bstream.PreprocessFunc
 	if i.blockFilter != nil {
-		filePreprocessor = bstream.PreprocessFunc(func(blk *bstream.Block) (interface{}, error) {
+		preprocessor = bstream.PreprocessFunc(func(blk *bstream.Block) (interface{}, error) {
 			return nil, i.blockFilter(blk)
 		})
 	}
@@ -149,11 +149,8 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 				250,
 				subHandler,
 				blockstream.WithRequester("search-indexer"),
+				blockstream.WithParallelPreproc(preprocessor, 2), // ok to give nil preprocessor ;)
 			)
-
-			// We will enable parallel reprocessing of live blocks, disabled to fix RAM usage
-			// source.SetParallelPreproc(pipe.mapper.PreprocessBlock, 8)
-
 			return source
 		})
 
@@ -162,7 +159,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 				i.blocksStore,
 				startBlockNum,
 				2, // always 2 download threads, ever
-				filePreprocessor,
+				preprocessor,
 				subHandler,
 			)
 			return fs

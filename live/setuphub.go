@@ -46,29 +46,34 @@ func (b *LiveBackend) SetupSubscriptionHub(
 	}
 
 	p := search.NewPreIndexer(blockMapper, liveIndexesPath)
+
 	// this indexes the block directly from the live source (relayer) and the file source (100-blocks)... it happens before the
 	// realtime tolerance... ouch
-	preprocessor := bstream.PreprocessFunc(p.Preprocess)
-
-	liveSourceFactory := bstream.SourceFromNumFactory(func(_ uint64, h bstream.Handler) bstream.Source {
-		src := blockstream.NewSource(context.Background(), blockstreamAddr, 300, bstream.NewPreprocessor(preprocessor, h), blockstream.WithRequester("search-live"))
-		src.SetParallelPreproc(preprocessor, preProcConcurrentThreads)
-		return src
-	})
-
-	filePreprocessor := bstream.PreprocessFunc(func(blk *bstream.Block) (interface{}, error) {
+	var preprocessor bstream.PreprocessFunc
+	preprocessor = bstream.PreprocessFunc(func(blk *bstream.Block) (interface{}, error) {
 		if blockFilter != nil {
 			err := blockFilter(blk)
 			if err != nil {
 				return nil, fmt.Errorf("block filter: %w", err)
 			}
 		}
+		return p.Preprocess(blk)
+	})
 
-		return preprocessor(blk)
+	liveSourceFactory := bstream.SourceFromNumFactory(func(_ uint64, h bstream.Handler) bstream.Source {
+		src := blockstream.NewSource(
+			context.Background(),
+			blockstreamAddr,
+			300,
+			bstream.NewPreprocessor(preprocessor, h),
+			blockstream.WithRequester("search-live"),
+			blockstream.WithParallelPreproc(preprocessor, preProcConcurrentThreads),
+		)
+		return src
 	})
 
 	fileSourceFactory := bstream.SourceFromNumFactory(func(startBlockNum uint64, h bstream.Handler) bstream.Source {
-		return bstream.NewFileSource(blocksStore, startBlockNum, 1, filePreprocessor, h)
+		return bstream.NewFileSource(blocksStore, startBlockNum, 1, preprocessor, h)
 	})
 
 	logger := zlog.Named("hub")
