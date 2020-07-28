@@ -304,6 +304,7 @@ func (p *Pipeline) saveIndexFile(nextIndexBase uint64, currentBlockID string) (e
 
 	zlog.Info("uploading Index", zap.Uint64("base", currentIndexBaseBlock))
 
+	p.uploadGroup.Wait() // never more than one backgroundUpload at a time
 	go p.prepareBackgroundUpload(previousWritable)
 
 	return nil
