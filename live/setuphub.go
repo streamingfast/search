@@ -28,17 +28,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (b *LiveBackend) SetupSubscriptionHub(
-	startBlock bstream.BlockRef,
-	blockFilter func(blk *bstream.Block) error,
-	blockMapper search.BlockMapper,
-	blocksStore dstore.Store,
-	blockstreamAddr string,
-	liveIndexesPath string,
-	realtimeTolerance time.Duration,
-	truncationThreshold int,
-	preProcConcurrentThreads int,
-) error {
+func (b *LiveBackend) SetupSubscriptionHub(startBlock bstream.BlockRef, blockFilter func(blk *bstream.Block) error, blockMapper search.BlockMapper, blocksStore dstore.Store, blockstreamAddr string, liveIndexesPath string, realtimeTolerance time.Duration, truncationThreshold int, preProcConcurrentThreads int, hubChannelSize int) error {
 	zlog.Info("setting up subscription hub")
 
 	if truncationThreshold < 1 {
@@ -87,7 +77,7 @@ func (b *LiveBackend) SetupSubscriptionHub(
 		liveSourceFactory,
 		hub.Withlogger(logger),
 		hub.WithRealtimeTolerance(realtimeTolerance),
-		hub.WithSourceChannelSize(1000), // FIXME: we should not need this, but when the live kicks in, we receive too many blocks at once on the progressPeerPublishing...
+		hub.WithSourceChannelSize(hubChannelSize), // FIXME: we should not need this, but when the live kicks in, we receive too many blocks at once on the progressPeerPublishing...
 		// maybe an option on the hub to "skip blocks if the channel is full" should apply, but that would be only on that specific subscription
 	)
 	if err != nil {
