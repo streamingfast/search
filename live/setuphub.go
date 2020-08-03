@@ -36,6 +36,7 @@ func (b *LiveBackend) SetupSubscriptionHub(
 	liveIndexesPath string,
 	realtimeTolerance time.Duration,
 	truncationThreshold int,
+	hubChannelSize int,
 ) error {
 	zlog.Info("setting up subscription hub")
 
@@ -69,7 +70,7 @@ func (b *LiveBackend) SetupSubscriptionHub(
 		archivedBlockSourceFactory,
 		bstreamFactory,
 		hub.WithRealtimeTolerance(realtimeTolerance),
-		hub.WithSourceChannelSize(1000), // FIXME: we should not need this, but when the live kicks in, we receive too many blocks at once on the progressPeerPublishing...
+		hub.WithSourceChannelSize(hubChannelSize), // FIXME: we should not need this, but when the live kicks in, we receive too many blocks at once on the progressPeerPublishing...
 		// maybe an option on the hub to "skip blocks if the channel is full" should apply, but that would be only on that specific subscription
 	)
 	if err != nil {
