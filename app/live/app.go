@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/dfuse-io/bstream"
@@ -32,6 +33,8 @@ import (
 	"github.com/dfuse-io/search/metrics"
 	"github.com/dfuse-io/shutter"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Config struct {
@@ -196,7 +199,14 @@ func (a *App) getStartLIB(tracker *bstream.Tracker, blockIDClient *pbblockmeta.C
 
 		archiveLIB, _, isNear, err := tracker.IsNearWithResults(ctx, search.DmeshArchiveLIBTarget, bstream.NetworkLIBTarget)
 		if err != nil {
-			zlog.Warn("failed to get is near with results", zap.Error(err))
+			level := zap.WarnLevel
+
+			// Sucks but the errors it not a multi-error, so it's not wrapped and hence, we cannot walk it "nicely"
+			if strings.HasSuffix(err.Error(), bstream.ErrTrackerBlockNotFound.Error()) {
+				level = zap.InfoLevel
+			}
+
+			zlog.Check(level, "failed to get is near with results").Write(zap.Error(err))
 			continue
 		}
 		if !isNear {
@@ -209,7 +219,12 @@ func (a *App) getStartLIB(tracker *bstream.Tracker, blockIDClient *pbblockmeta.C
 			zlog.Info("stream at the beginning of chain, archive not ready, using network lib")
 			idResponse, err := blockIDClient.BlockNumToID(ctx, bstream.GetProtocolFirstStreamableBlock)
 			if err != nil {
-				zlog.Warn("failed to get block id for, retrying...", zap.Uint64("first_streamable_block", bstream.GetProtocolFirstStreamableBlock), zap.Error(err))
+				level := zap.WarnLevel
+				if status.Code(err) == codes.Unavailable {
+					level = zap.InfoLevel
+				}
+
+				zlog.Check(level, "failed to get block id for, retrying...").Write(zap.Uint64("first_streamable_block", bstream.GetProtocolFirstStreamableBlock), zap.Error(err))
 				continue
 			}
 			return bstream.NewBlockRef(idResponse.Id, bstream.GetProtocolFirstStreamableBlock), nil
