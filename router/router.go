@@ -47,10 +47,11 @@ type Router struct {
 	ready              atomic.Bool
 	headDelayTolerance uint64
 	libDelayTolerance  uint64
+	globalLowBlockNum  int64
 	enableRetry        bool
 }
 
-func New(dmeshClient dmeshClient.SearchClient, headDelayTolerance uint64, libDelayTolerance uint64, blockIDClient pbblockmeta.BlockIDClient, forksClient pbblockmeta.ForksClient, enableRetry bool) *Router {
+func New(dmeshClient dmeshClient.SearchClient, headDelayTolerance uint64, libDelayTolerance uint64, blockIDClient pbblockmeta.BlockIDClient, forksClient pbblockmeta.ForksClient, enableRetry bool, globalLowBlockNum int64) *Router {
 	return &Router{
 		Shutter:            shutter.New(),
 		forksClient:        forksClient,
@@ -59,6 +60,7 @@ func New(dmeshClient dmeshClient.SearchClient, headDelayTolerance uint64, libDel
 		headDelayTolerance: headDelayTolerance,
 		libDelayTolerance:  libDelayTolerance,
 		enableRetry:        enableRetry,
+		globalLowBlockNum:  globalLowBlockNum,
 	}
 }
 
@@ -144,7 +146,7 @@ func (r *Router) StreamMatches(req *pb.RouterRequest, stream pb.Router_StreamMat
 		resolvedForkTrxCount = sentTrxCount
 	}
 
-	qRange, err := newQueryRange(req, cur, headBlock, irrBlock, r.headDelayTolerance, r.libDelayTolerance)
+	qRange, err := newQueryRange(req, cur, headBlock, irrBlock, r.headDelayTolerance, r.libDelayTolerance, r.globalLowBlockNum)
 	if err != nil {
 		zlogger.Error("invalid range",
 			zap.Reflect("router_request", req),

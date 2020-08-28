@@ -17,8 +17,8 @@ package router
 import (
 	"testing"
 
-	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/dfuse-io/derr"
+	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -1126,7 +1126,7 @@ func Test_newQueryRange(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			queryRange, err := newQueryRange(test.request, test.cursor, test.head, test.irr, test.headDelayTolerance, test.libDelayTolerance)
+			queryRange, err := newQueryRange(test.request, test.cursor, test.head, test.irr, test.headDelayTolerance, test.libDelayTolerance, 0)
 
 			if test.expectedError != nil {
 				assert.Equal(t, test.expectedError, err)
