@@ -41,26 +41,26 @@ import (
 type Router struct {
 	*shutter.Shutter
 
-	blockIDClient      pbblockmeta.BlockIDClient
-	forksClient        pbblockmeta.ForksClient
-	dmeshClient        dmeshClient.SearchClient
-	ready              atomic.Bool
-	headDelayTolerance uint64
-	libDelayTolerance  uint64
-	globalLowBlockNum  int64
-	enableRetry        bool
+	blockIDClient         pbblockmeta.BlockIDClient
+	forksClient           pbblockmeta.ForksClient
+	dmeshClient           dmeshClient.SearchClient
+	ready                 atomic.Bool
+	headDelayTolerance    uint64
+	libDelayTolerance     uint64
+	truncationLowBlockNum int64
+	enableRetry           bool
 }
 
-func New(dmeshClient dmeshClient.SearchClient, headDelayTolerance uint64, libDelayTolerance uint64, blockIDClient pbblockmeta.BlockIDClient, forksClient pbblockmeta.ForksClient, enableRetry bool, globalLowBlockNum int64) *Router {
+func New(dmeshClient dmeshClient.SearchClient, headDelayTolerance uint64, libDelayTolerance uint64, blockIDClient pbblockmeta.BlockIDClient, forksClient pbblockmeta.ForksClient, enableRetry bool, truncationLowBlockNum int64) *Router {
 	return &Router{
-		Shutter:            shutter.New(),
-		forksClient:        forksClient,
-		blockIDClient:      blockIDClient,
-		dmeshClient:        dmeshClient,
-		headDelayTolerance: headDelayTolerance,
-		libDelayTolerance:  libDelayTolerance,
-		enableRetry:        enableRetry,
-		globalLowBlockNum:  globalLowBlockNum,
+		Shutter:               shutter.New(),
+		forksClient:           forksClient,
+		blockIDClient:         blockIDClient,
+		dmeshClient:           dmeshClient,
+		headDelayTolerance:    headDelayTolerance,
+		libDelayTolerance:     libDelayTolerance,
+		enableRetry:           enableRetry,
+		truncationLowBlockNum: truncationLowBlockNum,
 	}
 }
 
@@ -146,7 +146,7 @@ func (r *Router) StreamMatches(req *pb.RouterRequest, stream pb.Router_StreamMat
 		resolvedForkTrxCount = sentTrxCount
 	}
 
-	qRange, err := newQueryRange(req, cur, headBlock, irrBlock, r.headDelayTolerance, r.libDelayTolerance, r.globalLowBlockNum)
+	qRange, err := newQueryRange(req, cur, headBlock, irrBlock, r.headDelayTolerance, r.libDelayTolerance, r.truncationLowBlockNum)
 	if err != nil {
 		zlogger.Error("invalid range",
 			zap.Reflect("router_request", req),
