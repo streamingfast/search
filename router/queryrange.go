@@ -86,9 +86,7 @@ func applyCursor(descending bool, qr *QueryRange, cursor *cursor, absoluteTrunca
 	}
 
 	if cursor.blockNum < absoluteTruncationLowBlockNum {
-		if descending {
-			return nil, status.Errorf(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (%d) is lower than the lowest block served by this endpoint (%d).", cursor.blockNum, absoluteTruncationLowBlockNum)
-		}
+		return nil, status.Errorf(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (%d) is lower than the lowest block served by this endpoint (%d).", cursor.blockNum, absoluteTruncationLowBlockNum)
 	}
 
 	if cursor.blockNum > qr.highBlockNum {
@@ -127,13 +125,16 @@ func parseLegacyRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, he
 
 	if req.Descending {
 		if req.StartBlock == 0 {
-			// FIXME: why do we add StartBLock when it should be 0
-			highBlkNum = virtualHead + int64(req.StartBlock)
-			if highBlkNum < 1 {
-				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: head or lib - %d goes beyond first block (head: %d, lib: %d)", -highBlkNum, head, lib)
+			highBlkNum = virtualHead
+			if highBlkNum < int64(absoluteTruncationLowBlockNum) {
+				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: (head or lib - %d) is lower than the lowest block served by this endpoint [%d] (head: %d, lib: %d)", req.StartBlock, absoluteTruncationLowBlockNum, head, lib)
 			}
 		} else {
 			highBlkNum = int64(req.StartBlock)
+			if req.StartBlock < absoluteTruncationLowBlockNum {
+				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: %d is lower than the lowest block served by this endpoint [%d]", req.StartBlock, absoluteTruncationLowBlockNum)
+			}
+
 		}
 
 		lowBlkNum = highBlkNum - int64(req.BlockCount)
@@ -154,7 +155,7 @@ func parseLegacyRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, he
 			lowBlkNum = virtualHead + int64(req.StartBlock)
 
 			if lowBlkNum < 1 {
-				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: (head or lib - %d) is lower than first block (head: %d, lib: %d)", lowBlkNum, head, lib)
+				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: (head or lib - %d) is lower than first block (head: %d, lib: %d)", req.StartBlock, head, lib)
 			}
 			if lowBlkNum < int64(absoluteTruncationLowBlockNum) {
 				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: (head or lib - %d) is lower than the lowest block served by this endpoint [%d] (head: %d, lib: %d)", lowBlkNum, absoluteTruncationLowBlockNum, head, lib)
@@ -228,8 +229,8 @@ func parseRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDela
 		return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num: goes beyond first block, value was %d", req.LowBlockNum)
 	}
 
-	if lowBlkNum < int64(absoluteTruncationLowBlockNum) {
-		return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: (head or lib - %d) is lower than the lowest block served by this endpoint [%d] (head: %d, lib: %d)", lowBlkNum, absoluteTruncationLowBlockNum, head, lib)
+	if !req.Descending && lowBlkNum != 0 && lowBlkNum < int64(absoluteTruncationLowBlockNum) {
+		return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num on ascending request: %d is lower than the lowest block served by this endpoint [%d]", lowBlkNum, absoluteTruncationLowBlockNum)
 	}
 
 	if highBlkNum < 0 {
