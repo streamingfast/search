@@ -229,8 +229,14 @@ func parseRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDela
 		return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num: goes beyond first block, value was %d", req.LowBlockNum)
 	}
 
-	if !req.Descending && lowBlkNum < int64(absoluteTruncationLowBlockNum) {
-		return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num on ascending request: %d is lower than the lowest block served by this endpoint [%d]", lowBlkNum, absoluteTruncationLowBlockNum)
+	if lowBlkNum < int64(absoluteTruncationLowBlockNum) {
+		if !req.Descending {
+			return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num on ascending request: %d is lower than the lowest block served by this endpoint [%d]", lowBlkNum, absoluteTruncationLowBlockNum)
+		}
+		if !req.LowBlockUnbounded {
+			return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num on descending request: %d is lower than the lowest block served by this endpoint [%d]", lowBlkNum, absoluteTruncationLowBlockNum)
+		}
+		lowBlkNum = int64(absoluteTruncationLowBlockNum)
 	}
 
 	if highBlkNum < 0 {
