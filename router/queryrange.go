@@ -17,6 +17,7 @@ package router
 import (
 	"fmt"
 
+	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"google.golang.org/grpc/codes"
@@ -249,7 +250,7 @@ func parseRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDela
 		if !req.Descending {
 			return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num on ascending request: %d is lower than the lowest block served by this endpoint [%d]", lowBlkNum, absoluteTruncationLowBlockNum)
 		}
-		if !req.LowBlockUnbounded {
+		if !req.LowBlockUnbounded && lowBlkNum > int64(bstream.GetProtocolFirstStreamableBlock) {
 			return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num on descending request: %d is lower than the lowest block served by this endpoint [%d]", lowBlkNum, absoluteTruncationLowBlockNum)
 		}
 		lowBlkNum = int64(absoluteTruncationLowBlockNum)

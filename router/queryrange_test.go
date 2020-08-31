@@ -17,6 +17,7 @@ package router
 import (
 	"testing"
 
+	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/stretchr/testify/assert"
@@ -27,18 +28,19 @@ import (
 func Test_newQueryRange(t *testing.T) {
 
 	tests := []struct {
-		name                  string
-		request               *pbsearch.RouterRequest
-		cursor                *cursor
-		head                  uint64
-		irr                   uint64
-		headDelayTolerance    uint64
-		libDelayTolerance     uint64
-		expectedHigh          uint64
-		expectedLow           uint64
-		truncationLowBlockNum int64
-		expectedMode          pbsearch.RouterRequest_Mode
-		expectedError         error
+		name                   string
+		request                *pbsearch.RouterRequest
+		cursor                 *cursor
+		head                   uint64
+		irr                    uint64
+		headDelayTolerance     uint64
+		libDelayTolerance      uint64
+		expectedHigh           uint64
+		expectedLow            uint64
+		truncationLowBlockNum  int64
+		bstreamFirstStreamable uint64
+		expectedMode           pbsearch.RouterRequest_Mode
+		expectedError          error
 	}{
 		//------------------------
 		//Without a cursor
@@ -864,6 +866,26 @@ func Test_newQueryRange(t *testing.T) {
 			expectedLow:  0,
 			expectedMode: pbsearch.RouterRequest_STREAMING,
 		},
+		//[0,-H]
+		{
+			name: "desc, low block is <= streamable and high block is relatively set",
+			head: 2000,
+			request: &pbsearch.RouterRequest{
+				HighBlockNum:      -239,
+				LowBlockNum:       1,
+				Limit:             10,
+				LowBlockUnbounded: false, // special case for streaming
+				WithReversible:    true,
+				Descending:        true,
+				Mode:              pbsearch.RouterRequest_STREAMING,
+			},
+			bstreamFirstStreamable: 2,
+			truncationLowBlockNum:  1000,
+			expectedHigh:           1762,
+			expectedLow:            1000,
+			expectedMode:           pbsearch.RouterRequest_STREAMING,
+		},
+
 		//[-L,None]
 		{
 			name: "desc, low block is relatively set and and high block is  unbounded, error cannot have descending unbounded high",
@@ -1295,6 +1317,7 @@ func Test_newQueryRange(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			bstream.GetProtocolFirstStreamableBlock = test.bstreamFirstStreamable
 			queryRange, err := newQueryRange(test.request, test.cursor, test.head, test.irr, test.headDelayTolerance, test.libDelayTolerance, test.truncationLowBlockNum)
 
 			if test.expectedError != nil {
