@@ -155,7 +155,7 @@ func parseLegacyRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, he
 			lowBlkNum = virtualHead + int64(req.StartBlock)
 
 			if lowBlkNum < 1 {
-				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: (head or lib - %d) is lower than first block (head: %d, lib: %d)", req.StartBlock, head, lib)
+				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: (head or lib - %d) is lower than first block (head: %d, lib: %d)", -req.StartBlock, head, lib)
 			}
 			if lowBlkNum < int64(absoluteTruncationLowBlockNum) {
 				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: (head or lib - %d) is lower than the lowest block served by this endpoint [%d] (head: %d, lib: %d)", lowBlkNum, absoluteTruncationLowBlockNum, head, lib)
