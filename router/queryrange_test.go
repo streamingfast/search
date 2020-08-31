@@ -372,7 +372,7 @@ func Test_newQueryRange(t *testing.T) {
 				Mode:           pbsearch.RouterRequest_STREAMING,
 			},
 			truncationLowBlockNum: -1000,
-			expectedError:         derr.Status(codes.InvalidArgument, "invalid low block num on ascending request: 0 is lower than the lowest block served by this endpoint [1001]"),
+			expectedError:         derr.Status(codes.InvalidArgument, "invalid low block num on ascending request: 0 is lower than the lowest block served by this endpoint [1000]"),
 		},
 		{
 			name: "asc, low block unbounded and truncation set starts on truncation",
@@ -386,7 +386,7 @@ func Test_newQueryRange(t *testing.T) {
 			},
 			truncationLowBlockNum: -1000,
 			expectedHigh:          1901,
-			expectedLow:           1001,
+			expectedLow:           1000,
 			expectedMode:          pbsearch.RouterRequest_STREAMING,
 		},
 		{
@@ -1070,7 +1070,7 @@ func Test_newQueryRange(t *testing.T) {
 			},
 			truncationLowBlockNum: -1950,
 			cursor:                &cursor{blockNum: 12},
-			expectedError:         derr.Status(codes.InvalidArgument, "invalid low block num on descending request: 2 is lower than the lowest block served by this endpoint [51]"),
+			expectedError:         derr.Status(codes.InvalidArgument, "invalid low block num on descending request: 2 is lower than the lowest block served by this endpoint [50]"),
 		},
 		{
 			name: "with cursor, desc, low block and high block explicitly set and valid but cursor is below truncation low block",
@@ -1084,7 +1084,7 @@ func Test_newQueryRange(t *testing.T) {
 			},
 			truncationLowBlockNum: -1950,
 			cursor:                &cursor{blockNum: 12},
-			expectedError:         derr.Status(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (12) is out of requested block range [51-101]."),
+			expectedError:         derr.Status(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (12) is out of requested block range [50-101]."),
 		},
 		{
 			name: "with cursor, desc, low block and high block explicitly set and valid and cursor is above height block",

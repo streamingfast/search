@@ -15,6 +15,8 @@
 package router
 
 import (
+	"fmt"
+
 	"github.com/dfuse-io/derr"
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"google.golang.org/grpc/codes"
@@ -58,9 +60,23 @@ const UnboundedInt int64 = int64(9_000_000_000_000_000_000)
    	• In paginated search, we refuse a `lowBlockNum` that would be beyond the HEAD block. For forward search, we tell them: `lowBlocknum beyond HEAD block, use negative values to start near the head of the chain`; for backward search, we tell them: `lowBlockNum beyond HEAD block`
 */
 
-func newQueryRange(req *pbsearch.RouterRequest, c *cursor, head uint64, irr uint64, headDelayTolerance uint64, libDelayTolerance uint64, truncationLowBlockNum int64) (qr *QueryRange, err error) {
+func absTruncLowBlockNum(head uint64, truncationLowBlockNum int64) (uint64, error) {
+	//uint64(adjustNegativeValues(truncationLowBlockNum, int64(head)))
+	if truncationLowBlockNum < 0 {
+		headMinusTrunc := int64(head) + truncationLowBlockNum
+		if headMinusTrunc < 0 {
+			return 0, fmt.Errorf("HEAD is below negative truncationLowBlockNum")
+		}
+		return uint64(headMinusTrunc), nil
+	}
+	return uint64(truncationLowBlockNum), nil
+}
 
-	absoluteTruncationLowBlockNum := uint64(adjustNegativeValues(truncationLowBlockNum, int64(head)))
+func newQueryRange(req *pbsearch.RouterRequest, c *cursor, head uint64, irr uint64, headDelayTolerance uint64, libDelayTolerance uint64, truncationLowBlockNum int64) (qr *QueryRange, err error) {
+	absoluteTruncationLowBlockNum, err := absTruncLowBlockNum(head, truncationLowBlockNum)
+	if err != nil {
+		return nil, err
+	}
 
 	if req.UseLegacyBoundaries {
 		qr, err = parseLegacyRequest(req, head, irr, headDelayTolerance, libDelayTolerance, absoluteTruncationLowBlockNum)
