@@ -17,8 +17,8 @@ package router
 import (
 	"testing"
 
-	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/dfuse-io/derr"
+	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -27,17 +27,18 @@ import (
 func Test_newQueryRange(t *testing.T) {
 
 	tests := []struct {
-		name               string
-		request            *pbsearch.RouterRequest
-		cursor             *cursor
-		head               uint64
-		irr                uint64
-		headDelayTolerance uint64
-		libDelayTolerance  uint64
-		expectedHigh       uint64
-		expectedLow        uint64
-		expectedMode       pbsearch.RouterRequest_Mode
-		expectedError      error
+		name                  string
+		request               *pbsearch.RouterRequest
+		cursor                *cursor
+		head                  uint64
+		irr                   uint64
+		headDelayTolerance    uint64
+		libDelayTolerance     uint64
+		expectedHigh          uint64
+		expectedLow           uint64
+		truncationLowBlockNum int64
+		expectedMode          pbsearch.RouterRequest_Mode
+		expectedError         error
 	}{
 		//------------------------
 		//Without a cursor
@@ -178,6 +179,37 @@ func Test_newQueryRange(t *testing.T) {
 			expectedError: derr.Status(codes.InvalidArgument, "invalid start block num: goes beyond HEAD block, use `0` to follow the HEAD (requested: 2500, head: 2000)"),
 		},
 		{
+			name: "legacy, forward illegal under truncationLow",
+			head: 2000,
+			irr:  1800,
+			request: &pbsearch.RouterRequest{
+				UseLegacyBoundaries: true,
+				StartBlock:          900,
+				BlockCount:          10,
+				Descending:          false,
+				WithReversible:      true,
+				Mode:                pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: 1000,
+			expectedError:         derr.Status(codes.InvalidArgument, "invalid start block: 900 is lower than the lowest block served by this endpoint [1000]"),
+		},
+		{
+			name: "legacy, backward illegal under truncationLow",
+			head: 2000,
+			irr:  1800,
+			request: &pbsearch.RouterRequest{
+				UseLegacyBoundaries: true,
+				StartBlock:          900,
+				BlockCount:          10,
+				Descending:          true,
+				WithReversible:      true,
+				Mode:                pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: 1000,
+			expectedError:         derr.Status(codes.InvalidArgument, "invalid start block: 900 is lower than the lowest block served by this endpoint [1000]"),
+		},
+
+		{
 			name: "legacy, backward with huge block count is still OK",
 			head: 2000,
 			irr:  1800,
@@ -192,6 +224,23 @@ func Test_newQueryRange(t *testing.T) {
 			expectedLow:  1,
 			expectedHigh: 100,
 			expectedMode: pbsearch.RouterRequest_PAGINATED,
+		},
+		{
+			name: "legacy, backward with huge block count is still OK, truncated silently",
+			head: 2000,
+			irr:  1800,
+			request: &pbsearch.RouterRequest{
+				UseLegacyBoundaries: true,
+				StartBlock:          100,
+				BlockCount:          uint64(UnboundedInt), //default and max legacy value
+				Descending:          true,
+				WithReversible:      false,
+				Mode:                pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: 10,
+			expectedLow:           10,
+			expectedHigh:          100,
+			expectedMode:          pbsearch.RouterRequest_PAGINATED,
 		},
 		{
 			name: "legacy, backward from 0 is head",
@@ -210,6 +259,23 @@ func Test_newQueryRange(t *testing.T) {
 			expectedMode: pbsearch.RouterRequest_PAGINATED,
 		},
 		{
+			name: "legacy, backward from 0 is head, truncated silently",
+			head: 2000,
+			irr:  1800,
+			request: &pbsearch.RouterRequest{
+				UseLegacyBoundaries: true,
+				StartBlock:          0,
+				BlockCount:          100,
+				Descending:          true,
+				WithReversible:      true,
+				Mode:                pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: 1925,
+			expectedLow:           1925,
+			expectedHigh:          2000,
+			expectedMode:          pbsearch.RouterRequest_PAGINATED,
+		},
+		{
 			name: "legacy, backward from 0 is lib",
 			head: 2000,
 			irr:  1000,
@@ -225,6 +291,24 @@ func Test_newQueryRange(t *testing.T) {
 			expectedHigh: 1000,
 			expectedMode: pbsearch.RouterRequest_PAGINATED,
 		},
+		{
+			name: "legacy, backward from 0 is lib, truncated silently",
+			head: 2000,
+			irr:  1000,
+			request: &pbsearch.RouterRequest{
+				UseLegacyBoundaries: true,
+				StartBlock:          0,
+				BlockCount:          100,
+				Descending:          true,
+				WithReversible:      false,
+				Mode:                pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: 950,
+			expectedLow:           950,
+			expectedHigh:          1000,
+			expectedMode:          pbsearch.RouterRequest_PAGINATED,
+		},
+
 		// Ascending tests
 		// [L,H]
 		{
@@ -276,6 +360,34 @@ func Test_newQueryRange(t *testing.T) {
 			expectedHigh: 5000,
 			expectedLow:  101,
 			expectedMode: pbsearch.RouterRequest_STREAMING,
+		},
+		{
+			name: "asc, low block 0 and truncation set",
+			head: 2000,
+			request: &pbsearch.RouterRequest{
+				HighBlockNum:   101,
+				LowBlockNum:    0,
+				WithReversible: true,
+				Descending:     false,
+				Mode:           pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: -1000,
+			expectedError:         derr.Status(codes.InvalidArgument, "invalid low block num on ascending request: 0 is lower than the lowest block served by this endpoint [1001]"),
+		},
+		{
+			name: "asc, low block unbounded and truncation set starts on truncation",
+			head: 2000,
+			request: &pbsearch.RouterRequest{
+				HighBlockNum:      -100,
+				LowBlockUnbounded: true,
+				WithReversible:    true,
+				Descending:        false,
+				Mode:              pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: -1000,
+			expectedHigh:          1901,
+			expectedLow:           1001,
+			expectedMode:          pbsearch.RouterRequest_STREAMING,
 		},
 		{
 			name: "asc, low block and high block explicitly set, irreversible only, and high block exceeds IRR",
@@ -918,6 +1030,34 @@ func Test_newQueryRange(t *testing.T) {
 			expectedError: derr.Status(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (12) is out of requested block range [20-101]."),
 		},
 		{
+			name: "with cursor, desc, low block and high block explicitly set and valid but cursor is below truncation low block",
+			head: 2000,
+			request: &pbsearch.RouterRequest{
+				HighBlockNum:   101,
+				LowBlockNum:    0,
+				WithReversible: true,
+				Descending:     true,
+				Mode:           pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: -1950,
+			cursor:                &cursor{blockNum: 12},
+			expectedError:         derr.Status(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (12) is lower than the lowest block served by this endpoint (51)."),
+		},
+		{
+			name: "with cursor, desc, low block and high block explicitly set and valid but cursor is below truncation low block",
+			head: 2000,
+			request: &pbsearch.RouterRequest{
+				HighBlockNum:   101,
+				LowBlockNum:    0,
+				WithReversible: true,
+				Descending:     true,
+				Mode:           pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: -1950,
+			cursor:                &cursor{blockNum: 12},
+			expectedError:         derr.Status(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (12) is lower than the lowest block served by this endpoint (51)."),
+		},
+		{
 			name: "with cursor, desc, low block and high block explicitly set and valid and cursor is above height block",
 			head: 2000,
 			request: &pbsearch.RouterRequest{
@@ -1126,7 +1266,7 @@ func Test_newQueryRange(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			queryRange, err := newQueryRange(test.request, test.cursor, test.head, test.irr, test.headDelayTolerance, test.libDelayTolerance)
+			queryRange, err := newQueryRange(test.request, test.cursor, test.head, test.irr, test.headDelayTolerance, test.libDelayTolerance, test.truncationLowBlockNum)
 
 			if test.expectedError != nil {
 				assert.Equal(t, test.expectedError, err)

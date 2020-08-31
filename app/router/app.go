@@ -31,12 +31,13 @@ import (
 )
 
 type Config struct {
-	ServiceVersion     string // dmesh service version (v1)
-	BlockmetaAddr      string // Blockmeta endpoint is queried to validate cursors that are passed LIB and forked out
-	GRPCListenAddr     string // Address to listen for incoming gRPC requests
-	HeadDelayTolerance uint64 // Number of blocks above a backend's head we allow a request query to be served (Live & Router)
-	LibDelayTolerance  uint64 // Number of blocks above a backend's lib we allow a request query to be served (Live & Router)
-	EnableRetry        bool   // Enable the router's attempt to retry a backend search if there is an error. This could have adverse consequences when search through the live
+	ServiceVersion        string // dmesh service version (v1)
+	BlockmetaAddr         string // Blockmeta endpoint is queried to validate cursors that are passed LIB and forked out
+	GRPCListenAddr        string // Address to listen for incoming gRPC requests
+	HeadDelayTolerance    uint64 // Number of blocks above a backend's head we allow a request query to be served (Live & Router)
+	LibDelayTolerance     uint64 // Number of blocks above a backend's lib we allow a request query to be served (Live & Router)
+	EnableRetry           bool   // Enable the router's attempt to retry a backend search if there is an error. This could have adverse consequences when search through the live
+	TruncationLowBlockNum int64  // Lowest block num expected to be served, can be relative to head
 }
 
 type Modules struct {
@@ -84,7 +85,7 @@ func (a *App) Run() error {
 	blockmetaCli := pbblockmeta.NewBlockIDClient(conn)
 	forksCli := pbblockmeta.NewForksClient(conn)
 
-	router := router.New(a.modules.Dmesh, a.config.HeadDelayTolerance, a.config.LibDelayTolerance, blockmetaCli, forksCli, a.config.EnableRetry)
+	router := router.New(a.modules.Dmesh, a.config.HeadDelayTolerance, a.config.LibDelayTolerance, blockmetaCli, forksCli, a.config.EnableRetry, a.config.TruncationLowBlockNum)
 
 	a.OnTerminating(router.Shutdown)
 	router.OnTerminated(a.Shutdown)
