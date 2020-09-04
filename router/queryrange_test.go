@@ -945,6 +945,33 @@ func Test_newQueryRange(t *testing.T) {
 			cursor:        &cursor{blockNum: 203},
 			expectedError: derr.Status(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (203) is out of requested block range [20-101]."),
 		},
+		{
+			name: "with cursor, asc, low block explicitly set below truncation, but cursor is above truncation",
+			head: 2000,
+			request: &pbsearch.RouterRequest{
+				HighBlockNum:   1000,
+				LowBlockNum:    20,
+				WithReversible: true,
+				Mode:           pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: 200,
+			cursor:                &cursor{blockNum: 203},
+			expectedLow:           203,
+			expectedHigh:          1000,
+		},
+		{
+			name: "with cursor, asc, low block explicitly set below truncation, but cursor is also below truncation",
+			head: 2000,
+			request: &pbsearch.RouterRequest{
+				HighBlockNum:   1000,
+				LowBlockNum:    20,
+				WithReversible: true,
+				Mode:           pbsearch.RouterRequest_STREAMING,
+			},
+			truncationLowBlockNum: 200,
+			cursor:                &cursor{blockNum: 100},
+			expectedError:         derr.Status(codes.InvalidArgument, "the query you are trying to perform is not valid, the cursor block num (100) is lower than the lowest block served by this endpoint (200)."),
+		},
 		// [-L,-H]
 		{
 			name: "with cursor, asc, low block and high block relatively set and valid ",

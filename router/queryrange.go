@@ -80,15 +80,15 @@ func newQueryRange(req *pbsearch.RouterRequest, c *cursor, head uint64, irr uint
 	}
 
 	if req.UseLegacyBoundaries {
-		qr, err = parseLegacyRequest(req, head, irr, headDelayTolerance, libDelayTolerance, absoluteTruncationLowBlockNum)
+		qr, err = parseLegacyRequest(req, head, irr, headDelayTolerance, libDelayTolerance, absoluteTruncationLowBlockNum, c)
 	} else {
-		qr, err = parseRequest(req, head, irr, headDelayTolerance, libDelayTolerance, absoluteTruncationLowBlockNum)
+		qr, err = parseRequest(req, head, irr, headDelayTolerance, libDelayTolerance, absoluteTruncationLowBlockNum, c)
 	}
 	if err != nil {
 		return nil, err
 	}
+	return qr, nil
 
-	return applyCursor(req.Descending, qr, c, absoluteTruncationLowBlockNum)
 }
 
 func applyCursor(descending bool, qr *QueryRange, cursor *cursor, absoluteTruncationLowBlockNum uint64) (*QueryRange, error) {
@@ -120,7 +120,7 @@ func applyCursor(descending bool, qr *QueryRange, cursor *cursor, absoluteTrunca
 	return qr, nil
 }
 
-func parseLegacyRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDelayTolerance uint64, libDelayTolerance uint64, absoluteTruncationLowBlockNum uint64) (*QueryRange, error) {
+func parseLegacyRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDelayTolerance uint64, libDelayTolerance uint64, absoluteTruncationLowBlockNum uint64, cursor *cursor) (*QueryRange, error) {
 	var lowBlkNum int64
 	var highBlkNum int64
 
@@ -179,7 +179,7 @@ func parseLegacyRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, he
 			}
 
 		case req.StartBlock > 0:
-			if req.StartBlock < absoluteTruncationLowBlockNum {
+			if req.StartBlock < absoluteTruncationLowBlockNum && cursor == nil { // we do not validate lowblocknum on ascending requests with cursor, the applyCursor function will do it
 				return nil, derr.Statusf(codes.InvalidArgument, "invalid start block: %d is lower than the lowest block served by this endpoint [%d]", req.StartBlock, absoluteTruncationLowBlockNum)
 			}
 			lowBlkNum = int64(req.StartBlock)
@@ -192,14 +192,15 @@ func parseLegacyRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, he
 		}
 	}
 
-	return &QueryRange{
+	qr := &QueryRange{
 		lowBlockNum:  uint64(lowBlkNum),
 		highBlockNum: uint64(highBlkNum),
 		mode:         pbsearch.RouterRequest_PAGINATED, // legacy is always paginated, so we can keep a highblocknum passed HEAD
-	}, nil
+	}
+	return applyCursor(req.Descending, qr, cursor, absoluteTruncationLowBlockNum)
 }
 
-func parseRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDelayTolerance uint64, libDelayTolerance uint64, absoluteTruncationLowBlockNum uint64) (*QueryRange, error) {
+func parseRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDelayTolerance uint64, libDelayTolerance uint64, absoluteTruncationLowBlockNum uint64, cursor *cursor) (*QueryRange, error) {
 
 	// Virtual head is either HEAD or LIB
 	tolerance := int64(libDelayTolerance)
@@ -247,10 +248,10 @@ func parseRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDela
 	}
 
 	if lowBlkNum < int64(absoluteTruncationLowBlockNum) {
-		if !req.Descending {
+		if !req.Descending && cursor == nil { // we do not validate lowblocknum on ascending requests with cursor, the applyCursor function will do it
 			return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num on ascending request: %d is lower than the lowest block served by this endpoint [%d]", lowBlkNum, absoluteTruncationLowBlockNum)
 		}
-		if !req.LowBlockUnbounded && lowBlkNum > int64(bstream.GetProtocolFirstStreamableBlock) {
+		if req.Descending && !req.LowBlockUnbounded && lowBlkNum > int64(bstream.GetProtocolFirstStreamableBlock) {
 			return nil, derr.Statusf(codes.InvalidArgument, "invalid low block num on descending request: %d is lower than the lowest block served by this endpoint [%d]", lowBlkNum, absoluteTruncationLowBlockNum)
 		}
 		lowBlkNum = int64(absoluteTruncationLowBlockNum)
@@ -264,11 +265,12 @@ func parseRequest(req *pbsearch.RouterRequest, head uint64, lib uint64, headDela
 		return nil, derr.Statusf(codes.InvalidArgument, "invalid high block num: goes beyond low block, value was %d", req.HighBlockNum)
 	}
 
-	return &QueryRange{
+	qr := &QueryRange{
 		lowBlockNum:  uint64(lowBlkNum),
 		highBlockNum: uint64(highBlkNum),
 		mode:         req.Mode,
-	}, nil
+	}
+	return applyCursor(req.Descending, qr, cursor, absoluteTruncationLowBlockNum)
 }
 
 func adjustNegativeValues(number int64, head int64) int64 {
