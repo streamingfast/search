@@ -115,7 +115,12 @@ func (i *Indexer) Bootstrap(startBlockNum uint64) error {
 }
 
 func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum uint64, previousIrreversibleID string, enableUpload bool, deleteAfterUpload bool) {
-	zlog.Info("building live pipeline", zap.Uint64("target_start_block_num", targetStartBlockNum), zap.Uint64("file_source_start_block_num", fileSourceStartBlockNum))
+	zlog.Info("setting up indexing live pipeline",
+		zap.Uint64("target_start_block_num", targetStartBlockNum),
+		zap.Uint64("file_source_start_block_num", fileSourceStartBlockNum),
+		zap.String("previous_irreversible_id", previousIrreversibleID),
+		zap.Bool("enable_upload", enableUpload),
+	)
 	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
 
 	var preprocessor bstream.PreprocessFunc
@@ -125,6 +130,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		})
 	}
 
+	firstCall := true
 	sf := bstream.SourceFromRefFactory(func(startBlockRef bstream.BlockRef, h bstream.Handler) bstream.Source {
 		pipe.SetCatchUpMode()
 
@@ -132,11 +138,16 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		var startBlockNum uint64
 
 		jsOptions := []bstream.JoiningSourceOption{bstream.JoiningSourceLogger(zlog)}
-		firstCall := startBlockRef.ID() == ""
+		zlog.Info("new source from ref factory",
+			zap.Stringer("start_block", startBlockRef),
+		)
 		if firstCall {
+			zlog.Info("first call setting up source from ref factory")
+			firstCall = false
 			startBlockNum = fileSourceStartBlockNum
 			handler = h
 		} else {
+			zlog.Info("re-setting up source from ref factory")
 			startBlockNum = startBlockRef.Num()
 			handler = bstream.NewBlockIDGate(startBlockRef.ID(), bstream.GateExclusive, h, bstream.GateOptionWithLogger(zlog))
 			jsOptions = append(jsOptions, bstream.JoiningSourceTargetBlockID(startBlockRef.ID()))
@@ -197,6 +208,14 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 }
 
 func (i *Indexer) BuildBatchPipeline(targetStartBlockNum, fileSourceStartBlockNum uint64, previousIrreversibleID string, enableUpload bool, deleteAfterUpload bool) {
+	zlog.Info("setting up indexing batch pipeline",
+		zap.Uint64("target_start_block_num", targetStartBlockNum),
+		zap.Uint64("filesource_start_block_num", fileSourceStartBlockNum),
+		zap.String("previous_irreversible_id,", previousIrreversibleID),
+		zap.Bool("enable_upload,", enableUpload),
+		zap.Bool("delete_after_upload,", deleteAfterUpload),
+	)
+
 	pipe := i.newPipeline(i.blockMapper, enableUpload, deleteAfterUpload)
 
 	gate := bstream.NewBlockNumGate(targetStartBlockNum, bstream.GateInclusive, pipe, bstream.GateOptionWithLogger(zlog))

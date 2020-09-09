@@ -70,6 +70,9 @@ func New(config *Config, modules *Modules) *App {
 	}
 }
 
+// resolveStartBlock will attempt to
+//  1) Get your desired target start block: the value at which you start processing blocks
+//	2) Get the filesource start block and IRR: the value at which you will start your source
 func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (targetStartBlock uint64, filesourceStartBlock uint64, previousIrreversibleID string, err error) {
 	if a.config.EnableBatchMode {
 		if a.config.StartBlock < 0 {
@@ -81,8 +84,11 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 		if err != nil {
 			return
 		}
-
 		targetStartBlock = dexer.NextUnindexedBlockPast(targetStartBlock) // skip already processed indexes
+	}
+
+	if targetStartBlock < bstream.GetProtocolFirstStreamableBlock {
+		targetStartBlock = bstream.GetProtocolFirstStreamableBlock
 	}
 
 	filesourceStartBlock, previousIrreversibleID, err = a.modules.Tracker.ResolveStartBlock(ctx, targetStartBlock)
@@ -145,18 +151,8 @@ func (a *App) Run() error {
 	}
 
 	if a.config.EnableBatchMode {
-		zlog.Info("setting up indexing batch pipeline",
-			zap.Uint64("target_start_block_num", targetStartBlockNum),
-			zap.Uint64("filesource_start_block_num", filesourceStartBlockNum),
-			zap.String("previous_irreversible_id,", previousIrreversibleID),
-		)
 		dexer.BuildBatchPipeline(targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, a.config.EnableUpload, a.config.DeleteAfterUpload)
 	} else {
-		zlog.Info("setting up indexing live pipeline",
-			zap.Uint64("target_start_block_num", targetStartBlockNum),
-			zap.Uint64("filesource_start_block_num", filesourceStartBlockNum),
-			zap.String("previous_irreversible_id,", previousIrreversibleID),
-		)
 		dexer.BuildLivePipeline(targetStartBlockNum, filesourceStartBlockNum, previousIrreversibleID, a.config.EnableUpload, a.config.DeleteAfterUpload)
 	}
 

@@ -123,6 +123,13 @@ func (pipe *Pipeline) ProcessBlock(blk *bstream.Block, objWrap interface{}) erro
 
 	blockTime := blk.Time()
 
+	if (blk.Number % 500) == 0 {
+		zlog.Info("processing blk 1/500)",
+			zap.String("block_id", blk.Id),
+			zap.Uint64("block_num", blk.Number),
+			zap.Time("block_time", blockTime),
+		)
+	}
 	//FIXME: Should wrap this in a check? make sure it is not alreay ready
 	pipe.indexer.setReady()
 
