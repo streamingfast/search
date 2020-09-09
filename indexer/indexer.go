@@ -192,9 +192,12 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 		forkable.WithFilters(forkable.StepNew | forkable.StepIrreversible),
 	}
 	if previousIrreversibleID != "" {
-		options = append(options, forkable.WithInclusiveLIB(bstream.NewBlockRef(previousIrreversibleID, fileSourceStartBlockNum)))
+		libRef := bstream.NewBlockRef(previousIrreversibleID, fileSourceStartBlockNum)
+		zlog.Info("setting forkable inclusive lib options", zap.Stringer("lib", libRef))
+		options = append(options, forkable.WithInclusiveLIB(libRef))
 	}
 
+	zlog.Info("initiating forkable irreversible block num gate", zap.Uint64("block_num", targetStartBlockNum))
 	gate := forkable.NewIrreversibleBlockNumGate(targetStartBlockNum, bstream.GateInclusive, pipe, bstream.GateOptionWithLogger(zlog))
 
 	forkableHandler := forkable.New(gate, options...)

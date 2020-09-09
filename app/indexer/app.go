@@ -84,7 +84,9 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 		if err != nil {
 			return
 		}
+		zlog.Info("get relative block", zap.Uint64("block_num", targetStartBlock))
 		targetStartBlock = dexer.NextUnindexedBlockPast(targetStartBlock) // skip already processed indexes
+		zlog.Info("next un-indexed block past", zap.Uint64("block_num", targetStartBlock))
 	}
 
 	if targetStartBlock < bstream.GetProtocolFirstStreamableBlock {
@@ -92,6 +94,7 @@ func (a *App) resolveStartBlock(ctx context.Context, dexer *indexer.Indexer) (ta
 	}
 
 	filesourceStartBlock, previousIrreversibleID, err = a.modules.Tracker.ResolveStartBlock(ctx, targetStartBlock)
+	zlog.Info("resolved start block", zap.Uint64("block_num", filesourceStartBlock), zap.String("previous_irreversible_id", previousIrreversibleID))
 	if err != nil {
 		err = fmt.Errorf("tacker: failed to resolve start block: %w", err)
 	}
@@ -146,7 +149,7 @@ func (a *App) Run() error {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		zlog.Info("done resolving start block", zap.Uint64("target_start_block_num", targetStartBlockNum), zap.Uint64("filesource_start_block_num", filesourceStartBlockNum))
+		zlog.Info("done resolving start block", zap.Uint64("target_start_block_num", targetStartBlockNum), zap.Uint64("filesource_start_block_num", filesourceStartBlockNum), zap.String("previous_irreversible_id", previousIrreversibleID))
 		break
 	}
 
