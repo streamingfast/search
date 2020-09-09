@@ -98,7 +98,16 @@ func (b *LiveBackend) SetupSubscriptionHub(startBlock bstream.BlockRef, blockFil
 }
 
 func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub) {
+	zlog.Debug("launching dmesh block progress publisher")
 	dmeshHandler := bstream.HandlerFunc(func(blk *bstream.Block, obj interface{}) error {
+
+		if (blk.Number % 1000) == 0 {
+			zlog.Debug("dmesh block progress publisher processed 1/1000 blk",
+				zap.String("block_id", blk.Id),
+				zap.Uint64("block_num", blk.Number),
+			)
+		}
+
 		fObj := obj.(*forkable.ForkableObject)
 		switch fObj.Step {
 		case forkable.StepNew:
@@ -135,7 +144,7 @@ func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub
 	// TODO: wrap in an Eternal source?
 	src.Run()
 	if err := src.Err(); err != nil {
-		b.Shutdown(fmt.Errorf("block progress thread failed, would not have moved anymore. Implement an eternal handler?: %w", err))
+		b.Shutdown(fmt.Errorf("hub subscriber: 'progressing peer publishing' shut down. search-live will not update dmesh anymore: %w", err))
 	}
 }
 
