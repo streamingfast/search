@@ -23,10 +23,11 @@ import (
 
 func TestCheckContiguousBlockRange(t *testing.T) {
 	tests := []struct {
-		name         string
-		headBlockNum uint64
-		peers        []*dmesh.SearchPeer
-		expectState  bool
+		name                          string
+		headBlockNum                  uint64
+		peers                         []*dmesh.SearchPeer
+		expectState                   bool
+		absoluteTruncationLowBlockNum uint64
 	}{
 		{
 			name:         "contiguous range with one backend",
@@ -77,7 +78,7 @@ func TestCheckContiguousBlockRange(t *testing.T) {
 			expectState: false,
 		},
 		{
-			name:         "contagious range does not go to 0",
+			name:         "contiguous range does not go to 0",
 			headBlockNum: 93422092,
 			peers: []*dmesh.SearchPeer{
 				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-1"), BlockRangeData: dmesh.NewTestBlockRangeData(100, 86999999, 86999999), TierLevel: 10},
@@ -87,10 +88,34 @@ func TestCheckContiguousBlockRange(t *testing.T) {
 			},
 			expectState: false,
 		},
+		{
+			name:         "contiguous range does not go to 0 but goes below truncation",
+			headBlockNum: 93422092,
+			peers: []*dmesh.SearchPeer{
+				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-1"), BlockRangeData: dmesh.NewTestBlockRangeData(100, 86999999, 86999999), TierLevel: 10},
+				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-2"), BlockRangeData: dmesh.NewTestBlockRangeData(86999999, 90000000, 90000000), TierLevel: 20}, // hole
+				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-3"), BlockRangeData: dmesh.NewTestBlockRangeData(92000000, 93421763, 93422077), TierLevel: 40},
+				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-4"), BlockRangeData: dmesh.NewTestBlockRangeData(93421763, 93421780, 93422092), TierLevel: 100},
+			},
+			absoluteTruncationLowBlockNum: 92000000,
+			expectState:                   true,
+		},
+		{
+			name:         "contiguous range does not go to 0 or even truncation",
+			headBlockNum: 93422092,
+			peers: []*dmesh.SearchPeer{
+				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-1"), BlockRangeData: dmesh.NewTestBlockRangeData(100, 86999999, 86999999), TierLevel: 10},
+				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-2"), BlockRangeData: dmesh.NewTestBlockRangeData(86999999, 90000000, 90000000), TierLevel: 20}, // hole
+				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-3"), BlockRangeData: dmesh.NewTestBlockRangeData(92000000, 93421763, 93422077), TierLevel: 40},
+				{GenericPeer: dmesh.NewTestReadyGenericPeer("v1", "search", "archive-segment-4"), BlockRangeData: dmesh.NewTestBlockRangeData(93421763, 93421780, 93422092), TierLevel: 100},
+			},
+			absoluteTruncationLowBlockNum: 100,
+			expectState:                   false,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expectState, hasContiguousBlockRange(test.headBlockNum, test.peers))
+			assert.Equal(t, test.expectState, hasContiguousBlockRange(test.absoluteTruncationLowBlockNum, test.headBlockNum, test.peers))
 		})
 	}
 }

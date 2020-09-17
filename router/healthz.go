@@ -52,7 +52,9 @@ func (r *Router) setRouterAvailability() {
 		}
 
 		headBlockNum, _ := getSearchHighestHeadInfo(readyPeers)
-		if hasContiguousBlockRange(headBlockNum, readyPeers) {
+		absoluteTruncation := uint64(adjustNegativeValues(r.truncationLowBlockNum, int64(headBlockNum)))
+
+		if hasContiguousBlockRange(absoluteTruncation, headBlockNum, readyPeers) {
 			metrics.FullContiguousBlockRange.SetUint64(1)
 		} else {
 			metrics.FullContiguousBlockRange.SetUint64(0)
@@ -61,7 +63,7 @@ func (r *Router) setRouterAvailability() {
 	}
 }
 
-func hasContiguousBlockRange(blockNum uint64, peers []*dmesh.SearchPeer) bool {
+func hasContiguousBlockRange(absoluteTruncationLowBlockNum, blockNum uint64, peers []*dmesh.SearchPeer) bool {
 	lowestBlockNum := uint64(math.MaxUint64)
 
 	for _, peer := range peers {
@@ -72,12 +74,12 @@ func hasContiguousBlockRange(blockNum uint64, peers []*dmesh.SearchPeer) bool {
 		}
 	}
 
-	if lowestBlockNum == 0 {
+	if lowestBlockNum <= absoluteTruncationLowBlockNum {
 		return true
 	} else if lowestBlockNum == uint64(math.MaxUint64) {
 		return false
 	} else {
-		return hasContiguousBlockRange((lowestBlockNum - 1), peers)
+		return hasContiguousBlockRange(absoluteTruncationLowBlockNum, (lowestBlockNum - 1), peers)
 	}
 }
 
