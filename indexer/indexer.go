@@ -108,10 +108,13 @@ func (i *Indexer) isReady() bool {
 func (i *Indexer) Bootstrap(startBlockNum uint64) error {
 	zlog.Info("bootstrapping from start blocknum", zap.Uint64("indexer_startblocknum", startBlockNum))
 	i.StartBlockNum = startBlockNum
-	if i.StartBlockNum%i.shardSize != 0 && i.StartBlockNum != bstream.GetProtocolFirstStreamableBlock {
-		return fmt.Errorf("indexer only starts RIGHT BEFORE the index boundaries, did you specify an irreversible block_id with a round number? It says %d", i.StartBlockNum)
+	if i.StartBlockNum == bstream.GetProtocolFirstStreamableBlock {
+		return i.pipeline.Bootstrap(0)
 	}
-	return i.pipeline.Bootstrap(i.StartBlockNum)
+	if i.StartBlockNum%i.shardSize == 0 {
+		return i.pipeline.Bootstrap(i.StartBlockNum)
+	}
+	return fmt.Errorf("indexer only starts RIGHT BEFORE the index boundaries, did you specify an irreversible block_id with a round number? It says %d", i.StartBlockNum)
 }
 
 func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum uint64, previousIrreversibleID string, enableUpload bool, deleteAfterUpload bool) {
