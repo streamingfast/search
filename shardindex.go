@@ -65,7 +65,7 @@ func newShardIndex(baseBlockNum uint64, shardSize uint64, idx index.Index, pathF
 		shard.EndBlockID = end.ID
 		shard.EndBlockTime = end.Time
 		if shard.EndBlock != end.Num {
-			return nil, fmt.Errorf("invalid end block assertion on shard")
+			return nil, fmt.Errorf("invalid end block assertion on shard_end_block_num %d boundary_end_block_num %d", shard.EndBlock, end.Num)
 		}
 	}
 
