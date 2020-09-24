@@ -573,6 +573,8 @@ func (p *IndexPool) buildWritableIndexFilePath(baseBlockNum uint64, suffix strin
 }
 
 func (p *IndexPool) openReadOnly(baseBlockNum uint64) (*search.ShardIndex, error) {
+	zlog.Info("open read only", zap.Uint64("base_block_num", baseBlockNum))
+
 	path := p.getReadOnlyIndexFilePath(baseBlockNum)
 	idxer, err := scorch.NewScorch("data", map[string]interface{}{
 		"forceSegmentType":    "zap",
