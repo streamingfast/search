@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/dfuse-io/derr"
 	"go.uber.org/zap"
 )
 
@@ -34,20 +35,22 @@ func startBlockFromFileName(filename string) uint64 {
 
 var walkIndexfileFunc = walkIndexfile
 
-func (p *Pipeline) Upload(baseIndex uint64, indexPath string) (err error) {
+func (p *Pipeline) Upload(baseIndex uint64, indexPath string) error {
 	dstoreOperationTimeout := 90 * time.Second
-	hardOperationTimeout := 100 * time.Second // Protecting ourselves against dstore misbehaving
+	return derr.Retry(5, func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, dstoreOperationTimeout)
+		defer cancel()
+		return p.upload(ctx, baseIndex, indexPath)
+	})
+}
 
+func (p *Pipeline) upload(ctx context.Context, baseIndex uint64, indexPath string) (err error) {
 	destinationPath := fmt.Sprintf("shards-%d/%010d.bleve.tar.zst", p.shardSize, baseIndex)
-
 	zlog.Info("upload: index", zap.Uint64("base", baseIndex), zap.String("destination_path", destinationPath))
 
 	pipeRead, pipeWrite := io.Pipe()
 	writeDone := make(chan error)
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), dstoreOperationTimeout)
-		defer cancel()
-
 		writeDone <- p.indexesStore.WriteObject(ctx, destinationPath, pipeRead) // to Google Storage
 	}()
 
@@ -74,9 +77,6 @@ func (p *Pipeline) Upload(baseIndex uint64, indexPath string) (err error) {
 			return fmt.Errorf("writing to google storage: %s", err)
 		}
 		zlog.Info("archive upload done", zap.Uint64("base", baseIndex))
-	case <-time.After(hardOperationTimeout):
-		zlog.Error("upload hard timeout hit (dstore did not trigger timeout correctly)", zap.Uint64("base", baseIndex), zap.Duration("hard_operation_timeout", hardOperationTimeout))
-		return fmt.Errorf("upload hard timeout hit")
 	}
 
 	return nil

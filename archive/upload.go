@@ -23,17 +23,25 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/dfuse-io/derr"
 	"go.uber.org/zap"
 )
 
 func (p *IndexPool) Upload(baseIndex uint64, indexPath string) (err error) {
+	dstoreOperationTimeout := 10 * time.Minute
+	return derr.Retry(5, func(ctx context.Context) error {
+		ctx, cancel := context.WithTimeout(ctx, dstoreOperationTimeout)
+		defer cancel()
+		return p.upload(ctx, baseIndex, indexPath)
+	})
+}
+
+func (p *IndexPool) upload(ctx context.Context, baseIndex uint64, indexPath string) (err error) {
 	destinationPath := fmt.Sprintf("shards-%d/%010d.bleve.tar.zst", p.ShardSize, baseIndex)
 
 	pipeRead, pipeWrite := io.Pipe()
 	writeDone := make(chan error)
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer cancel()
 
 		writeDone <- p.indexesStore.WriteObject(ctx, destinationPath, pipeRead) // to Google Storage
 	}()
