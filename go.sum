@@ -140,6 +140,8 @@ github.com/dfuse-io/dbin v0.0.0-20200406215642-ec7f22e794eb/go.mod h1:yMMhO8IdiS
 github.com/dfuse-io/derr v0.0.0-20200406214256-c690655246a1/go.mod h1:JW/hUKChGd6ytDtvwx4JFo57m1pnFvMxaq9WbDAb2fQ=
 github.com/dfuse-io/derr v0.0.0-20201001173607-2243ca7a227a h1:zAl3ILWuWFtu6KKMYoACJ0CgeTUVf7TREHZIizCbjFo=
 github.com/dfuse-io/derr v0.0.0-20201001173607-2243ca7a227a/go.mod h1:8bq4KABI5QklH7a16SFIH7/R/jNCOloKu20T5VP+iTk=
+github.com/dfuse-io/derr v0.0.0-20201001203637-4dc9d8014152 h1:8Ee802t3evsUTc7B/W9Lf1pavPje2dtYWEpMtMnE7TY=
+github.com/dfuse-io/derr v0.0.0-20201001203637-4dc9d8014152/go.mod h1:8bq4KABI5QklH7a16SFIH7/R/jNCOloKu20T5VP+iTk=
 github.com/dfuse-io/dgrpc v0.0.0-20200406214416-6271093e544c h1:ebrUj1rR2g1ErpCMjQUmTON3T3MNi22wf/vYJ/zSkXI=
 github.com/dfuse-io/dgrpc v0.0.0-20200406214416-6271093e544c/go.mod h1:n7pQV0mGBMBgJChGKp5gfRLkP2jSCkT+to7fPxKvQPA=
 github.com/dfuse-io/dgrpc v0.0.0-20200615163546-b8380f15f7d8 h1:C8csEjQ7WetcRL29vRMMKmLYDQyIGM+DbObr5j5+K68=

@@ -322,6 +322,7 @@ func (p *Pipeline) prepareBackgroundUpload(idx *search.ShardIndex) {
 
 	// need to decrement uploadGroup counter *before* shutdown
 	var propagateError = func(msg string, err error) {
+		p.enableUpload = false // no more than one
 		zlog.Error(msg, zap.Error(err))
 		p.uploadGroup.Done()
 		p.indexer.Shutdown(err)
@@ -355,8 +356,8 @@ func (p *Pipeline) prepareBackgroundUpload(idx *search.ShardIndex) {
 			propagateError(fmt.Sprintf("upload failed, base: %d", idx.StartBlock), err)
 			return
 		}
+		zlog.Info("upload: done", zap.Uint64("base", idx.StartBlock))
 	}
-	zlog.Info("upload: done", zap.Uint64("base", idx.StartBlock))
 
 	if p.deleteAfterUpload {
 		zlog.Info("deleting processed files", zap.Uint64("base", idx.StartBlock))
