@@ -49,27 +49,34 @@ func (p *Pipeline) upload(ctx context.Context, baseIndex uint64, indexPath strin
 	zlog.Info("upload: index", zap.Uint64("base", baseIndex), zap.String("destination_path", destinationPath))
 
 	pipeRead, pipeWrite := io.Pipe()
-	writeDone := make(chan error)
+	writeDone := make(chan error, 1)
 	go func() {
 		writeDone <- p.indexesStore.WriteObject(ctx, destinationPath, pipeRead) // to Google Storage
 	}()
 
-	tw := tar.NewWriter(pipeWrite)
+	// both read from and write to pipe can fail
+	readDone := make(chan error, 1)
+	go func() {
+		tw := tar.NewWriter(pipeWrite)
 
-	err = walkIndexfileFunc(indexPath+"/", tw)
-	if err != nil {
-		return fmt.Errorf("creating archive: %s", err)
-	}
+		err = walkIndexfileFunc(indexPath+"/", tw)
+		if err != nil {
+			readDone <- fmt.Errorf("creating archive: %s", err)
+			return
+		}
 
-	zlog.Debug("closing tarWriter")
-	if err = tw.Close(); err != nil {
-		return fmt.Errorf(".tar.zst close: base %d: %s", baseIndex, err)
-	}
+		zlog.Debug("closing tarWriter")
+		if err = tw.Close(); err != nil {
+			readDone <- fmt.Errorf(".tar.zst close: base %d: %s", baseIndex, err)
+			return
+		}
 
-	zlog.Debug("closing pipe")
-	if err = pipeWrite.Close(); err != nil {
-		return fmt.Errorf("write pipe close: base %d: %s", baseIndex, err)
-	}
+		zlog.Debug("closing pipe")
+		if err = pipeWrite.Close(); err != nil {
+			readDone <- fmt.Errorf("write pipe close: base %d: %s", baseIndex, err)
+			return
+		}
+	}()
 
 	select {
 	case err = <-writeDone:
@@ -77,6 +84,10 @@ func (p *Pipeline) upload(ctx context.Context, baseIndex uint64, indexPath strin
 			return fmt.Errorf("writing to google storage: %s", err)
 		}
 		zlog.Info("archive upload done", zap.Uint64("base", baseIndex))
+	case err = <-readDone:
+		if err != nil {
+			return fmt.Errorf("reading file to write to google storage: %s", err)
+		}
 	}
 
 	return nil
