@@ -273,7 +273,7 @@ func (p *IndexPool) syncFromStoragePass(startBlock, stopBlock uint64, maxIndexes
 	for _, file := range remote {
 		match := remotePathRE.FindStringSubmatch(file)
 		if match == nil {
-			zlog.Info("Skipping non-index file in remote storage", zap.String("file", file))
+			zlog.Info("skipping non-index file in remote storage", zap.String("file", file))
 			continue
 		}
 
@@ -334,7 +334,7 @@ func (p *IndexPool) syncFromStoragePass(startBlock, stopBlock uint64, maxIndexes
 			break
 		}
 		if downloadStopBlock != 0 && startBlockFromFileName(fl) >= downloadStopBlock {
-			zlog.Info("Not downloading remote index because it would create an hole", zap.String("filename", fl))
+			zlog.Info("not downloading remote index because it would create an hole", zap.String("filename", fl))
 			break
 		}
 		index := i
@@ -364,7 +364,7 @@ func (p *IndexPool) downloadAndExtract(index int, baseFile string) error {
 
 	zlog.Check(level, "downloading index").Write(zap.String("source", src))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer cancel()
 
 	reader, err := p.indexesStore.OpenObject(ctx, src)
@@ -399,21 +399,21 @@ func (p *IndexPool) downloadAndExtract(index int, baseFile string) error {
 		case tar.TypeDir:
 			if _, err := os.Stat(filename); err != nil {
 				if err := os.MkdirAll(filename, 0755); err != nil {
-					return fmt.Errorf("Untar - cannot create directory, index=%d, base=%s: %s", index, baseFile, err)
+					return fmt.Errorf("untar cannot create directory, index=%d, base=%s: %s", index, baseFile, err)
 				}
 			}
 		case tar.TypeReg:
 			f, err := os.OpenFile(filename, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 			if err != nil {
-				return fmt.Errorf("Untar - cannot create file, index=%d, base=%s: %s", index, baseFile, err)
+				return fmt.Errorf("untar cannot create file, index=%d, base=%s: %s", index, baseFile, err)
 			}
 			if _, err := io.Copy(f, tr); err != nil {
-				return fmt.Errorf("Untar - cannot io.Copy failed, index=%d, base=%s: %s", index, baseFile, err)
+				return fmt.Errorf("untar cannot io.Copy failed, index=%d, base=%s: %s", index, baseFile, err)
 			}
 			err = f.Close()
 		}
 		if err != nil {
-			return fmt.Errorf("Untar - uncaught, index=%d, base=%s: %s", index, baseFile, err)
+			return fmt.Errorf("untar uncaught, index=%d, base=%s: %s", index, baseFile, err)
 		}
 	}
 

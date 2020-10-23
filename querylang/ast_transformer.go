@@ -14,40 +14,14 @@
 
 package querylang
 
-import (
-	"regexp"
-	"strings"
-
-	"golang.org/x/crypto/sha3"
-)
-
-var methodHexRegex = regexp.MustCompile("^[0-9a-f]{8}$")
-
 type FieldTransformer interface {
 	Transform(field *Field) error
 }
 
-var NoOpFieldTransformer FieldTransformer
+type noOpTransformer struct{}
 
-func trimZeroX(in string) string {
-	if strings.HasPrefix(in, "0x") {
-		return in[2:]
-	}
-	return in
+func (noOpTransformer) Transform(field *Field) error {
+	return nil
 }
 
-func trimZeroPrefix(in string) string {
-	out := strings.TrimLeft(in, "0")
-	if len(out) == 0 {
-		return "0"
-	}
-	return out
-}
-
-// Keccak256 calculates and returns the Keccak256 hash of the input data.
-func Keccak256(data []byte) []byte {
-	d := sha3.NewLegacyKeccak256()
-	d.Write(data)
-
-	return d.Sum(nil)
-}
+var NoOpFieldTransformer noOpTransformer

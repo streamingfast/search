@@ -16,6 +16,7 @@ package search
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -61,7 +62,10 @@ func (q *BleveQuery) Hash() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%x", md5.Sum(astJSON)), nil
+
+	hash := md5.Sum(astJSON)
+
+	return hex.EncodeToString(hash[:]), nil
 }
 
 func (q *BleveQuery) Parse() error {
