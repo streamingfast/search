@@ -45,12 +45,12 @@ func (a *AST) ApplyTransforms(transformer FieldTransformer) error {
 	for _, sub := range a.AndExpr {
 		if sub.AndField != nil {
 			if err := transformer.Transform(sub.AndField); err != nil {
-				return fmt.Errorf("field %q: %s", sub.AndField.Name, err)
+				return fmt.Errorf("field %q: %w", sub.AndField.Name, err)
 			}
 		}
 		for _, orField := range sub.OrFields {
 			if err := transformer.Transform(orField); err != nil {
-				return fmt.Errorf("field %q: %s", orField.Name, err)
+				return fmt.Errorf("field %q: %w", orField.Name, err)
 			}
 		}
 	}
@@ -109,41 +109,6 @@ func (a *AST) FindAllFieldNames() []string {
 	}
 
 	return fieldNames
-}
-
-func (a *AST) PurgeDeprecatedStatusField() error {
-	var newAndExpr []*SubGroup
-	for _, expr := range a.AndExpr {
-
-		if andField := expr.AndField; andField != nil {
-			if andField.Name == "status" {
-				status := andField.StringValue()
-				if andField.Minus == "-" {
-					return fmt.Errorf("negated 'status' deprecated")
-				}
-				if status != "executed" {
-					return fmt.Errorf("'status' other than 'executed' is invalid")
-				}
-				// Backwards compatibility fix: Silently ignore the `status:executed`
-				continue
-			}
-		} else {
-			for _, andField := range expr.OrFields {
-				if andField.Name == "status" {
-					return fmt.Errorf("'status' field invalid in OR clause")
-				}
-			}
-		}
-		newAndExpr = append(newAndExpr, expr)
-	}
-
-	if newAndExpr == nil {
-		return fmt.Errorf("empty query after deprecated 'status' field removal")
-	}
-
-	a.AndExpr = newAndExpr
-
-	return nil
 }
 
 func (f *Field) Transform(transformer FieldTransformer) error {
