@@ -35,7 +35,7 @@ func within(block, lowBlockNum, highBlockNum uint64) bool {
 func getReadyPeers(peers []*dmesh.SearchPeer) (out []*dmesh.SearchPeer) {
 	for _, peer := range peers {
 		if peer.Ready {
-			if peer.VirtualHead() > 0 {
+			if peer.VirtualHead() > 0 || peer.ServesResolveForks { // only forkresolving peer can be ready with virtualhead == 0
 				zlog.Debug("available peer", zap.Reflect("search_peer", peer))
 				out = append(out, peer)
 			} else {
