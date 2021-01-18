@@ -79,6 +79,11 @@ func New(config *Config, modules *Modules) *App {
 	}
 }
 func (a *App) Run() error {
+	appCtx, cancel := context.WithCancel(context.Background())
+	a.Shutter.OnTerminating(func(_ error) {
+		cancel()
+	})
+
 	zlog.Info("running live app ", zap.Reflect("config", a.config))
 
 	metrics.Register(metrics.LiveMetricSet)
@@ -130,7 +135,7 @@ func (a *App) Run() error {
 	tracker.AddGetter(bstream.NetworkLIBTarget, bstream.NetworkLIBBlockRefGetter(a.config.BlockmetaAddr))
 
 	zlog.Info("blockmeta setup getting start block")
-	startLIB, err := a.getStartLIB(tracker, blockMetaClient)
+	startLIB, err := a.getStartLIB(appCtx, tracker, blockMetaClient)
 	if err != nil {
 		if err == LiveAppStartAborted {
 			return nil
@@ -176,17 +181,19 @@ func (a *App) Run() error {
 
 	zlog.Info("launching live search")
 	go func() {
-		lb.WaitHubReady()
+		lb.WaitHubReady(appCtx)
+		if a.IsTerminating() {
+			// No need to continue if we are terminating
+			return
+		}
+
 		lb.Launch(a.config.GRPCListenAddr)
 	}()
 
 	return nil
 }
 
-func (a *App) getStartLIB(tracker *bstream.Tracker, blockIDClient *pbblockmeta.Client) (startBlockRef bstream.BlockRef, err error) {
-
-	ctx := context.Background()
-
+func (a *App) getStartLIB(ctx context.Context, tracker *bstream.Tracker, blockIDClient *pbblockmeta.Client) (startBlockRef bstream.BlockRef, err error) {
 	sleepTime := time.Duration(0)
 	for {
 		if a.IsTerminating() {

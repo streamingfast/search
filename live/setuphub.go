@@ -148,15 +148,18 @@ func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub
 	}
 }
 
-func (b *LiveBackend) WaitHubReady() {
+func (b *LiveBackend) WaitHubReady(ctx context.Context) {
 	zlog.Info("waiting for subscription hub to be ready")
 
-	b.hub.WaitUntilRealTime()
+	b.hub.WaitUntilRealTime(ctx)
 
 	zlog.Info("subscription hub is real-time")
-
 	for b.hub.HeadBlock() == nil || !b.tailManager.Ready() {
-		time.Sleep(time.Second)
+		select {
+		case <-time.After(time.Second):
+		case <-ctx.Done():
+			return
+		}
 	}
 
 	zlog.Info("subscription hub and buffer ready")
