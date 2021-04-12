@@ -2,7 +2,6 @@
 .idea
 vendor
 /data
-/sqe
 /search
 
 /testindexer/dfuse.bleve

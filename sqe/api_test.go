@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package querylang
+package sqe
 
 import (
 	"encoding/json"
@@ -23,10 +23,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestToBleveQuery(t *testing.T) {
+func TestExpressionToBleveQuery(t *testing.T) {
 	tests := []struct {
 		in          string
-		transformer FieldTransformer
 		expectBleve string
 	}{
 		{
@@ -47,7 +46,7 @@ func TestToBleveQuery(t *testing.T) {
 		},
 		{
 			in:          "receiver:eoscanadacom account:eoscanadacom",
-			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"account"},{"term":"eoscanadacom","field":"receiver"}]}`,
+			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"receiver"},{"term":"eoscanadacom","field":"account"}]}`,
 		},
 		{
 			in:          "account:eoscanadacom receiver:eoscanadacom",
@@ -55,29 +54,38 @@ func TestToBleveQuery(t *testing.T) {
 		},
 		{
 			in:          "receiver:eoscanadacom (action:transfer OR action:issue)",
-			expectBleve: `{"conjuncts":[{"disjuncts":[{"term":"issue","field":"action"},{"term":"transfer","field":"action"}],"min":1},{"term":"eoscanadacom","field":"receiver"}]}`,
+			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"receiver"},{"disjuncts":[{"term":"transfer","field":"action"},{"term":"issue","field":"action"}],"min":1}]}`,
 		},
 		{
 			in:          "receiver:eoscanadacom -(action:transfer OR action:issue)",
-			expectBleve: `{"conjuncts":[{"must_not":{"disjuncts":[{"disjuncts":[{"term":"issue","field":"action"},{"term":"transfer","field":"action"}],"min":1}],"min":0}},{"term":"eoscanadacom","field":"receiver"}]}`,
+			expectBleve: `{"conjuncts":[{"term":"eoscanadacom","field":"receiver"},{"must_not":{"disjuncts":[{"disjuncts":[{"term":"transfer","field":"action"},{"term":"issue","field":"action"}],"min":1}],"min":0}}]}`,
 		},
 		{
 			in:          "-receiver:eoscanadacom (action:transfer OR action:issue)",
-			expectBleve: `{"conjuncts":[{"disjuncts":[{"term":"issue","field":"action"},{"term":"transfer","field":"action"}],"min":1},{"must_not":{"disjuncts":[{"term":"eoscanadacom","field":"receiver"}],"min":0}}]}`,
+			expectBleve: `{"conjuncts":[{"must_not":{"disjuncts":[{"term":"eoscanadacom","field":"receiver"}],"min":0}},{"disjuncts":[{"term":"transfer","field":"action"},{"term":"issue","field":"action"}],"min":1}]}`,
+		},
+		{
+			in:          "-action:patate",
+			expectBleve: `{"must_not":{"disjuncts":[{"term":"patate","field":"action"}],"min":0}}`,
 		},
 		{
 			in: "receiver:eoscanadacom (action:transfer OR action:issue) account:eoscanadacom (data.from:eoscanadacom OR data.to:eoscanadacom)",
-			expectBleve: `{"conjuncts":[
-		    {"term":"eoscanadacom","field":"account"},
-		    {"disjuncts":[{"term":"issue","field":"action"},
-		                  {"term":"transfer","field":"action"}],
-		     "min":1},
-		    {"disjuncts":[{"term":"eoscanadacom","field":"data.from"},
-		                  {"term":"eoscanadacom","field":"data.to"}],
-		     "min":1},
-		    {"term":"eoscanadacom","field":"receiver"}
-			]
-		}`,
+			expectBleve: `{
+				"conjuncts": [
+				  { "term": "eoscanadacom", "field": "receiver" },
+				  { "disjuncts": [
+					  { "term": "transfer", "field": "action" },
+					  { "term": "issue", "field": "action" }
+					], "min": 1
+				  },
+				  { "term": "eoscanadacom", "field": "account" },
+				  { "disjuncts": [
+					  { "term": "eoscanadacom", "field": "data.from" },
+					  { "term": "eoscanadacom", "field": "data.to" }
+					], "min": 1
+				  }
+				]
+			  }`,
 		},
 	}
 
@@ -86,16 +94,16 @@ func TestToBleveQuery(t *testing.T) {
 			ast, err := Parse(test.in)
 			require.NoError(t, err)
 
-			res := ast.ToBleve()
+			res := ExpressionToBleve(ast)
 
 			cnt, err := json.Marshal(res)
 			require.NoError(t, err)
-			assert.JSONEq(t, test.expectBleve, string(cnt), string(cnt))
+			assert.JSONEq(t, test.expectBleve, string(cnt), "Failed on SQE %q, got %s", test.in, string(cnt))
 		})
 	}
 }
 
-func TestFindAllFieldNames(t *testing.T) {
+func TestExtractAllFieldNames(t *testing.T) {
 	tests := []struct {
 		in                 string
 		expectedFieldNames []string
@@ -135,30 +143,8 @@ func TestFindAllFieldNames(t *testing.T) {
 			ast, err := Parse(test.in)
 			require.NoError(t, err)
 
-			actuals := ast.FindAllFieldNames()
-			assert.ElementsMatch(t, test.expectedFieldNames, actuals)
-		})
-	}
-}
-
-func TestEmptyQueries(t *testing.T) {
-	tests := []struct {
-		in             string
-		expectedOutput string
-	}{
-		{
-			"-action:patate",
-			`{"ands":[{"and":{"minus":"-","name":"action","str":"patate"}}]}`,
-		},
-	}
-
-	for idx, test := range tests {
-		t.Run(fmt.Sprintf("index %d", idx+1), func(t *testing.T) {
-			ast, err := Parse(test.in)
-			require.NoError(t, err)
-			cnt, err := json.Marshal(ast)
-			require.NoError(t, err)
-			assert.Equal(t, test.expectedOutput, string(cnt), string(cnt))
+			actuals := ExtractAllFieldNames(ast)
+			assert.ElementsMatch(t, test.expectedFieldNames, actuals, "Mistmatch for SQE %q", test.in)
 		})
 	}
 }

@@ -1,4 +1,4 @@
-package querylang
+package sqe
 
 import (
 	"strings"

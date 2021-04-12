@@ -5,7 +5,7 @@ require (
 	github.com/RoaringBitmap/roaring v0.4.21
 	github.com/abourget/llerrgroup v0.2.0
 	github.com/abourget/viperbind v0.1.0
-	github.com/alecthomas/participle v0.2.0
+	github.com/alecthomas/participle v0.7.1
 	github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 	github.com/blevesearch/bleve v1.0.9
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
