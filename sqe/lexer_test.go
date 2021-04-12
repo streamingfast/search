@@ -16,12 +16,14 @@ func TestLexer(t *testing.T) {
 		sqe    string
 		tokens []string
 	}{
+		{"minus_followed_by_name", `-token`, []string{"NotOperator", "Name", "EOF"}},
+
+		{"name_with_inside_minus", `open-token`, []string{"Name", "EOF"}},
+
 		{"legacy_and", `AND`, []string{"AndOperator", "EOF"}},
-		{"legacy_and_lower", `and`, []string{"AndOperator", "EOF"}},
 		{"new_and", `&&`, []string{"AndOperator", "EOF"}},
 
 		{"legacy_or", `OR`, []string{"OrOperator", "EOF"}},
-		{"legacy_or_lower", `or`, []string{"OrOperator", "EOF"}},
 		{"new_or", `||`, []string{"OrOperator", "EOF"}},
 
 		{"quoting characters start", `'some "some`, []string{"Quoting", "Name", "Space", "Quoting", "Name", "EOF"}},

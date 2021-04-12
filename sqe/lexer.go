@@ -50,16 +50,25 @@ func (l *lexer) mustLexNext() lex.Token {
 	return token
 }
 
+func (l *lexer) peekPos() lex.Position {
+	peek, err := l.Peek(0)
+	if err != nil {
+		return lex.Position{Filename: "", Line: 1, Offset: l.PeekingLexer.Length() - 1, Column: l.PeekingLexer.Length()}
+	}
+
+	return peek.Pos
+}
+
 var lexerDefinition = lex.Must(lex.Regexp(
 	`(?m)` +
 		`(?P<Quoting>"|')` +
 		`|(?P<Colon>:)` +
 		`|(?P<NotOperator>\-)` +
-		`|(?P<OrOperator>OR|or|\|\|)` +
-		`|(?P<AndOperator>AND|and|&&)` +
+		`|(?P<OrOperator>OR|\|\|)` +
+		`|(?P<AndOperator>AND|&&)` +
 		`|(?P<LeftParenthesis>\()` +
 		`|(?P<RightParenthesis>\))` +
-		`|(?P<Name>[^\s'":\-\(\)]+)` +
+		`|(?P<Name>[^\s'":\-\(\)][^\s'":\(\)]*)` +
 		`|(?P<Space>\s+)`,
 ))
 

@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+// MaxRecursionDeepness is the limit we impose on the number of direct ORs expression.
+// It's possible to have more than that, just not in a single successive sequence or `1 or 2 or 3 ...`.
+// This is to avoid first a speed problem where parsing start to be
+const MaxRecursionDeepness = 2501
+
 func Parse(input string) (expr Expression, err error) {
 	parser, err := NewParser(bytes.NewBufferString(input))
 	if err != nil {
@@ -44,22 +49,29 @@ func (p *Parser) Parse() (out Expression, err error) {
 		}
 
 		switch v := recoveredErr.(type) {
+		case *ParseError:
+			err = v
 		case error:
 			err = fmt.Errorf("unexpected error occurred while parsing SQE expression: %w", v)
-		case string:
-			err = fmt.Errorf("unexpected error occurred while parsing SQE expression: %s", v)
-		case fmt.Stringer:
+		case string, fmt.Stringer:
 			err = fmt.Errorf("unexpected error occurred while parsing SQE expression: %s", v)
 		default:
 			err = fmt.Errorf("unexpected error occurred while parsing SQE expression: %v", v)
 		}
 	}()
 
-	return p.parseExpression()
+	return p.parseExpression(0)
 }
 
-func (p *Parser) parseExpression() (Expression, error) {
-	left, err := p.parseUnaryExpression()
+func (p *Parser) parseExpression(depth int) (Expression, error) {
+	if depth >= MaxRecursionDeepness {
+		// This is a small hack, the panic is trapped at the public API `Parse` method. We do it with a panic
+		// to avoid the really deep wrapping of error that would happen if we returned right away. A test ensure
+		// that this behavior works as expected.
+		panic(parserError("expression is too long, too much ORs or parenthesis expressions", p.l.peekPos()))
+	}
+
+	left, err := p.parseUnaryExpression(depth)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +108,13 @@ func (p *Parser) parseExpression() (Expression, error) {
 		// This implements precedence order between `&&` and `||`. A `&&` is parsed with the smallest
 		// next unit so it takes precedences while `||` parse with the longuest possibility.
 		parser := p.parseUnaryExpression
+		depthIncrease := 0
 		if p.l.isOrOperator(next) {
 			parser = p.parseExpression
+			depthIncrease = 1
 		}
 
-		right, err := parser()
+		right, err := parser(depth + depthIncrease)
 
 		switch {
 		case isImplicitAnd || p.l.isAndOperator(next):
@@ -189,7 +203,7 @@ func (p *Parser) parseSearchTerm() (Expression, error) {
 	}, nil
 }
 
-func (p *Parser) parseUnaryExpression() (Expression, error) {
+func (p *Parser) parseUnaryExpression(depth int) (Expression, error) {
 	p.l.skipSpaces()
 
 	token, err := p.l.Peek(0)
@@ -205,20 +219,20 @@ func (p *Parser) parseUnaryExpression() (Expression, error) {
 	case p.l.isName(token):
 		return p.parseSearchTerm()
 	case p.l.isLeftParenthesis(token):
-		return p.parseParenthesisExpression()
+		return p.parseParenthesisExpression(depth)
 	case p.l.isNotOperator(token):
-		return p.parseNotExpression()
+		return p.parseNotExpression(depth)
 	default:
 		return nil, parserError(fmt.Sprintf("expected a search term, minus sign or left parenthesis, got %s", p.l.getTokenType(token)), token.Pos)
 	}
 }
 
-func (p *Parser) parseParenthesisExpression() (Expression, error) {
+func (p *Parser) parseParenthesisExpression(depth int) (Expression, error) {
 	// Consume left parenthesis
 	openingParenthesis := p.l.mustLexNext()
 	p.lookForRightParenthesis++
 
-	child, err := p.parseExpression()
+	child, err := p.parseExpression(depth + 1)
 	if err != nil {
 		return nil, fmt.Errorf("invalid expression after opening parenthesis: %w", err)
 	}
@@ -241,11 +255,11 @@ func (p *Parser) parseParenthesisExpression() (Expression, error) {
 	return &ParenthesisExpression{child}, nil
 }
 
-func (p *Parser) parseNotExpression() (Expression, error) {
+func (p *Parser) parseNotExpression(depth int) (Expression, error) {
 	// Consume minus sign
 	p.l.mustLexNext()
 
-	child, err := p.parseUnaryExpression()
+	child, err := p.parseUnaryExpression(depth)
 	if err != nil {
 		return nil, fmt.Errorf("invalid expression after minus sign: %w", err)
 	}

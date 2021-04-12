@@ -1,7 +1,9 @@
 package sqe
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -66,6 +68,12 @@ func TestParser(t *testing.T) {
 			"double_quoted_string_multi_spaces",
 			`action :   "  test:value OR value AND other   	( 10 )!"`,
 			`action:"  test:value OR value AND other   	( 10 )!"`,
+			nil,
+		},
+		{
+			"double_quoted_string_with_minus_sign",
+			`action:"eosio.token-open"`,
+			`action:"eosio.token-open"`,
 			nil,
 		},
 
@@ -177,7 +185,7 @@ func TestParser(t *testing.T) {
 		},
 		{
 			"top_level_not_parenthesis_or",
-			`- ( action:one or value:two)`,
+			`- ( action:one OR value:two)`,
 			`!([action:one || value:two])`,
 			nil,
 		},
@@ -238,7 +246,7 @@ func TestParser(t *testing.T) {
 		},
 		{
 			"top_level_legacy_or_with_both_not",
-			`-action:two or   -action:one`,
+			`-action:two OR   -action:one`,
 			`[!action:two || !action:one]`,
 			nil,
 		},
@@ -251,56 +259,56 @@ func TestParser(t *testing.T) {
 		},
 		{
 			"top_level_multi_or",
-			`a:1 or b:2 or c:3 or d:4`,
+			`a:1 OR b:2 OR c:3 OR d:4`,
 			`[a:1 || [b:2 || [c:3 || d:4]]]`,
 			nil,
 		},
 
 		{
 			"precedence_and_or",
-			`a:1 b:2 or c:3`,
+			`a:1 b:2 OR c:3`,
 			`[<a:1 && b:2> || c:3]`,
 			nil,
 		},
 		{
 			"precedence_or_and",
-			`a:1 or b:2 c:3`,
+			`a:1 OR b:2 c:3`,
 			`[a:1 || <b:2 && c:3>]`,
 			nil,
 		},
 		{
 			"precedence_and_or_and",
-			`a:1 b:2 or c:3 d:4`,
+			`a:1 b:2 OR c:3 d:4`,
 			`[<a:1 && b:2> || <c:3 && d:4>]`,
 			nil,
 		},
 		{
 			"precedence_and_and_or",
-			`a:1 b:2 c:3 or d:4`,
+			`a:1 b:2 c:3 OR d:4`,
 			`[<a:1 && b:2 && c:3> || d:4]`,
 			nil,
 		},
 		{
 			"precedence_not_and_or",
-			`-a:1 b:2 or c:3`,
+			`-a:1 b:2 OR c:3`,
 			`[<!a:1 && b:2> || c:3]`,
 			nil,
 		},
 		{
 			"precedence_parenthesis_not_and_or",
-			`-a:1 (b:2 or c:3)`,
+			`-a:1 (b:2 OR c:3)`,
 			`<!a:1 && ([b:2 || c:3])>`,
 			nil,
 		},
 		{
 			"precedence_parenthesis_and_or_and",
-			`a:1 (b:2 or c:3) d:4`,
+			`a:1 (b:2 OR c:3) d:4`,
 			`<a:1 && ([b:2 || c:3]) && d:4>`,
 			nil,
 		},
 		{
 			"precedence_parenthesis_and_or",
-			`a:1 (b:2 or c:3)`,
+			`a:1 (b:2 OR c:3)`,
 			`<a:1 && ([b:2 || c:3])>`,
 			nil,
 		},
@@ -311,6 +319,12 @@ func TestParser(t *testing.T) {
 			`<data.from:"eos" && ([action:transfer || [action:issue || action:matant]]) && data.to:from && data.mama:to>`,
 			nil,
 		},
+		{
+			"ported_with_newlines",
+			"(a:1 OR\n b:2)",
+			`([a:1 || b:2])`,
+			nil,
+		},
 
 		{
 			"depthness_100_ors",
@@ -319,20 +333,14 @@ func TestParser(t *testing.T) {
 			nil,
 		},
 		{
-			"depthness_1000_ors",
+			"depthness_1_000_ors",
 			buildFromOrToList(1000),
 			ValidateOnlyThatItParses,
 			nil,
 		},
 		{
-			"depthness_10000_ors",
-			buildFromOrToList(10000),
-			ValidateOnlyThatItParses,
-			nil,
-		},
-		{
-			"depthness_100000_ors",
-			buildFromOrToList(100000),
+			"depthness_2_500_ors",
+			buildFromOrToList(2500),
 			ValidateOnlyThatItParses,
 			nil,
 		},
@@ -355,7 +363,7 @@ func TestParser(t *testing.T) {
 		},
 		{
 			"error_missing_expression_after_and",
-			`a:2 and `,
+			`a:2 AND `,
 			"",
 			fmt.Errorf("missing expression after 'and' clause: %w",
 				&ParseError{"expected a search term, minus sign or left parenthesis, got end of input", pos(1, 8, 9)},
@@ -363,7 +371,7 @@ func TestParser(t *testing.T) {
 		},
 		{
 			"error_missing_expression_after_or",
-			`a:2 or `,
+			`a:2 OR `,
 			"",
 			fmt.Errorf("missing expression after 'or' clause: %w", &ParseError{"expected a search term, minus sign or left parenthesis, got end of input", pos(1, 7, 8)}),
 		},
@@ -378,6 +386,12 @@ func TestParser(t *testing.T) {
 			`( a:1`,
 			"",
 			&ParseError{"expecting closing parenthesis, got end of input", pos(1, 0, 1)},
+		},
+		{
+			"error_deepness_reached",
+			buildFromOrToList(MaxRecursionDeepness + 1),
+			"",
+			&ParseError{"expression is too long, too much ORs or parenthesis expressions", pos(1, 101251, 101252)},
 		},
 	}
 
@@ -396,6 +410,36 @@ func TestParser(t *testing.T) {
 			if test.expectedErr == nil && err == nil && test.expected != ValidateOnlyThatItParses {
 				assert.Equal(t, test.expected, expressionToString(expression), "Invalid parsing for SEQ %q", test.sqe)
 			}
+		})
+	}
+}
+
+func TestParserFromBigQuery(t *testing.T) {
+	bigQueryResultsFile := os.Getenv("SEARCH_SQE_BIGQUERY_RESULTS_FILE")
+	if bigQueryResultsFile == "" {
+		t.Skip("Environment variable SEARCH_SQE_BIGQUERY_RESULTS_FILE pointing to a JSON list in the form `[{\"query\":\"...\"}, ...]` must be specified to run this test")
+		return
+	}
+
+	jsonFile, err := ioutil.ReadFile(os.Getenv("SEARCH_SQE_BIGQUERY_RESULTS_FILE"))
+	require.NoError(t, err)
+
+	type queryItem struct {
+		Query string `json:"query"`
+	}
+
+	var queries []queryItem
+	err = json.Unmarshal(jsonFile, &queries)
+	require.NoError(t, err)
+
+	for i, query := range queries {
+		t.Run(fmt.Sprintf("element #%d - 'jq .[%d]'", i, i), func(t *testing.T) {
+			parser, err := NewParser(strings.NewReader(query.Query))
+			require.NoError(t, err)
+
+			expression, err := parser.Parse()
+			require.NoError(t, err, "Parse failed for %q", query.Query)
+			require.NotNil(t, expression)
 		})
 	}
 }
