@@ -149,6 +149,7 @@ func (f *ForkResolver) StreamUndoMatches(req *pbsearch.ForkResolveRequest, strea
 		zlog.Debug("getting block", zap.String("id", blk.ID()), zap.Uint64("num", blk.Num()))
 		obj, err := f.createSingleIndex(blk)
 		if err != nil {
+			zlogger.Error("cannot create single index block", zap.Error(err))
 			return err
 		}
 		idx := obj.(*search.SingleIndex)
