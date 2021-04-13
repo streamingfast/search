@@ -63,24 +63,30 @@ var lexerDefinition = lex.Must(lex.Regexp(
 	`(?m)` +
 		`(?P<Quoting>"|')` +
 		`|(?P<Colon>:)` +
+		`|(?P<Comma>,)` +
 		`|(?P<NotOperator>\-)` +
 		`|(?P<OrOperator>OR|\|\|)` +
 		`|(?P<AndOperator>AND|&&)` +
 		`|(?P<LeftParenthesis>\()` +
 		`|(?P<RightParenthesis>\))` +
-		`|(?P<Name>[^\s'":\-\(\)][^\s'":\(\)]*)` +
+		`|(?P<LeftSquareBracket>\[)` +
+		`|(?P<RightSquareBracket>\])` +
+		`|(?P<Name>[^\s'":,\-\(\)\[\]][^\s'":,\(\)\[\]]*)` +
 		`|(?P<Space>\s+)`,
 ))
 
-func (l *lexer) isSpace(t lex.Token) bool            { return l.isTokenType(t, "Space") }
-func (l *lexer) isQuoting(t lex.Token) bool          { return l.isTokenType(t, "Quoting") }
-func (l *lexer) isColon(t lex.Token) bool            { return l.isTokenType(t, "Colon") }
-func (l *lexer) isNotOperator(t lex.Token) bool      { return l.isTokenType(t, "NotOperator") }
-func (l *lexer) isOrOperator(t lex.Token) bool       { return l.isTokenType(t, "OrOperator") }
-func (l *lexer) isAndOperator(t lex.Token) bool      { return l.isTokenType(t, "AndOperator") }
-func (l *lexer) isLeftParenthesis(t lex.Token) bool  { return l.isTokenType(t, "LeftParenthesis") }
-func (l *lexer) isRightParenthesis(t lex.Token) bool { return l.isTokenType(t, "RightParenthesis") }
-func (l *lexer) isName(t lex.Token) bool             { return l.isTokenType(t, "Name") }
+func (l *lexer) isSpace(t lex.Token) bool              { return l.isTokenType(t, "Space") }
+func (l *lexer) isQuoting(t lex.Token) bool            { return l.isTokenType(t, "Quoting") }
+func (l *lexer) isColon(t lex.Token) bool              { return l.isTokenType(t, "Colon") }
+func (l *lexer) isComma(t lex.Token) bool              { return l.isTokenType(t, "Comma") }
+func (l *lexer) isNotOperator(t lex.Token) bool        { return l.isTokenType(t, "NotOperator") }
+func (l *lexer) isOrOperator(t lex.Token) bool         { return l.isTokenType(t, "OrOperator") }
+func (l *lexer) isAndOperator(t lex.Token) bool        { return l.isTokenType(t, "AndOperator") }
+func (l *lexer) isLeftParenthesis(t lex.Token) bool    { return l.isTokenType(t, "LeftParenthesis") }
+func (l *lexer) isRightParenthesis(t lex.Token) bool   { return l.isTokenType(t, "RightParenthesis") }
+func (l *lexer) isLeftSquareBracket(t lex.Token) bool  { return l.isTokenType(t, "LeftSquareBracket") }
+func (l *lexer) isRightSquareBracket(t lex.Token) bool { return l.isTokenType(t, "RightSquareBracket") }
+func (l *lexer) isName(t lex.Token) bool               { return l.isTokenType(t, "Name") }
 
 func (l *lexer) isTokenType(token lex.Token, expectedType string) bool {
 	return l.symbols[token.Type] == expectedType

@@ -59,20 +59,45 @@ func searchTermsAsExprToQuery(children []Expression) (out []query.Query) {
 }
 
 func searchTermToQuery(e *SearchTerm) query.Query {
-	value := e.Value.Literal()
+	switch v := e.Value.(type) {
+	case *StringLiteral:
+		return stringLiteralToQuery(e.Field, v)
 
+	case *StringsList:
+		if len(v.Values) <= 0 {
+			// The idea here is to match absolutely nothing, I did not find yet what is best way to create this in Bleve, using this literal is probably good enough for now
+			term := query.NewTermQuery("__!{+}!__")
+			term.SetField(e.Field)
+
+			return term
+		}
+
+		children := make([]query.Query, len(v.Values))
+		for i, child := range v.Values {
+			children[i] = stringLiteralToQuery(e.Field, child)
+		}
+
+		return newDisjuncts(children...)
+
+	default:
+		panic(fmt.Errorf("the SQE AST node of type %T is not handled properly when converting SQE to Bleve query", v))
+	}
+}
+
+func stringLiteralToQuery(field string, literal *StringLiteral) query.Query {
+	value := literal.Literal()
 	// If the search term is non-quoted and it's either true or false, use a BoolQuery
-	if e.Value.QuotingChar == "" {
+	if literal.QuotingChar == "" {
 		if value == "true" {
-			return &query.BoolFieldQuery{FieldVal: e.Field, Bool: true}
+			return &query.BoolFieldQuery{FieldVal: field, Bool: true}
 		}
 
 		if value == "false" {
-			return &query.BoolFieldQuery{FieldVal: e.Field, Bool: false}
+			return &query.BoolFieldQuery{FieldVal: field, Bool: false}
 		}
 	}
 
-	return &query.TermQuery{FieldVal: e.Field, Term: value}
+	return &query.TermQuery{FieldVal: field, Term: value}
 }
 
 func isSearchTermsOnly(children []Expression) bool {

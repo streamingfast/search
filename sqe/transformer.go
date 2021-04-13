@@ -15,12 +15,12 @@
 package sqe
 
 type FieldTransformer interface {
-	Transform(field *SearchTerm) error
+	Transform(field string, value *StringLiteral) error
 }
 
 type noOpTransformer struct{}
 
-func (noOpTransformer) Transform(field *SearchTerm) error {
+func (noOpTransformer) Transform(field string, value *StringLiteral) error {
 	return nil
 }
 

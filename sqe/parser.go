@@ -13,13 +13,13 @@ import (
 // This is to avoid first a speed problem where parsing start to be
 const MaxRecursionDeepness = 2501
 
-func Parse(input string) (expr Expression, err error) {
+func Parse(ctx context.Context, input string) (expr Expression, err error) {
 	parser, err := NewParser(bytes.NewBufferString(input))
 	if err != nil {
 		return nil, fmt.Errorf("new parser: %w", err)
 	}
 
-	return parser.Parse()
+	return parser.Parse(ctx)
 }
 
 type Parser struct {
@@ -41,7 +41,7 @@ func NewParser(reader io.Reader) (*Parser, error) {
 	}, nil
 }
 
-func (p *Parser) Parse() (out Expression, err error) {
+func (p *Parser) Parse(ctx context.Context) (out Expression, err error) {
 	defer func() {
 		recoveredErr := recover()
 		if recoveredErr == nil {
@@ -60,7 +60,12 @@ func (p *Parser) Parse() (out Expression, err error) {
 		}
 	}()
 
-	return p.parseExpression(0)
+	rootExpr, err := p.parseExpression(0)
+	if err != nil {
+		return nil, err
+	}
+
+	return optimizeExpression(ctx, rootExpr), nil
 }
 
 func (p *Parser) parseExpression(depth int) (Expression, error) {
@@ -150,59 +155,6 @@ func (p *Parser) parseExpression(depth int) (Expression, error) {
 	}
 }
 
-func (p *Parser) parseSearchTerm() (Expression, error) {
-	fieldNameToken := p.l.mustLexNext()
-
-	p.l.skipSpaces()
-
-	colonToken, err := p.l.Next()
-	if err != nil {
-		return nil, err
-	}
-
-	if colonToken.EOF() {
-		return nil, parserError("expecting colon after search field, got end of input", fieldNameToken.Pos)
-	}
-
-	if !p.l.isColon(colonToken) {
-		return nil, parserError(fmt.Sprintf("expecting colon after search field, got %s", p.l.getTokenType(colonToken)), colonToken.Pos)
-	}
-
-	p.l.skipSpaces()
-
-	token, err := p.l.Peek(0)
-	if err != nil {
-		return nil, err
-	}
-
-	if token.EOF() {
-		return nil, parserError("expecting search value after field, got end of input", token.Pos)
-	}
-
-	var searchValue *StringLiteral
-
-	switch {
-	case p.l.isName(token):
-		searchValue = &StringLiteral{
-			Value: p.l.mustLexNext().String(),
-		}
-	case p.l.isQuoting(token):
-		literal, err := p.parseQuotedString()
-		if err != nil {
-			return nil, err
-		}
-
-		searchValue = literal
-	default:
-		return nil, parserError(fmt.Sprintf("expecting search value after colon, got %s", p.l.getTokenType(token)), token.Pos)
-	}
-
-	return &SearchTerm{
-		Field: fieldNameToken.String(),
-		Value: searchValue,
-	}, nil
-}
-
 func (p *Parser) parseUnaryExpression(depth int) (Expression, error) {
 	p.l.skipSpaces()
 
@@ -265,6 +217,124 @@ func (p *Parser) parseNotExpression(depth int) (Expression, error) {
 	}
 
 	return &NotExpression{child}, nil
+}
+
+func (p *Parser) parseSearchTerm() (Expression, error) {
+	fieldNameToken := p.l.mustLexNext()
+
+	p.l.skipSpaces()
+
+	colonToken, err := p.l.Next()
+	if err != nil {
+		return nil, err
+	}
+
+	if colonToken.EOF() {
+		return nil, parserError("expecting colon after search field, got end of input", fieldNameToken.Pos)
+	}
+
+	if !p.l.isColon(colonToken) {
+		return nil, parserError(fmt.Sprintf("expecting colon after search field, got %s", p.l.getTokenType(colonToken)), colonToken.Pos)
+	}
+
+	p.l.skipSpaces()
+
+	token, err := p.l.Peek(0)
+	if err != nil {
+		return nil, err
+	}
+
+	if token.EOF() {
+		return nil, parserError("expecting search value after field, got end of input", token.Pos)
+	}
+
+	var searchValue SearchTermValue
+
+	switch {
+	case p.l.isName(token):
+		searchValue = &StringLiteral{
+			Value: p.l.mustLexNext().String(),
+		}
+	case p.l.isQuoting(token):
+		literal, err := p.parseQuotedString()
+		if err != nil {
+			return nil, err
+		}
+
+		searchValue = literal
+	case p.l.isLeftSquareBracket(token):
+		list, err := p.parseStringsList()
+		if err != nil {
+			return nil, err
+		}
+
+		searchValue = list
+	default:
+		return nil, parserError(fmt.Sprintf("expecting search value after colon, either a string, quoted string or strings list got %s", p.l.getTokenType(token)), token.Pos)
+	}
+
+	return &SearchTerm{
+		Field: fieldNameToken.String(),
+		Value: searchValue,
+	}, nil
+}
+
+func (p *Parser) parseStringsList() (*StringsList, error) {
+	// Consume left square bracket
+	p.l.mustLexNext()
+
+	list := &StringsList{}
+	lookFor := "name"
+
+	for {
+		p.l.skipSpaces()
+		token, err := p.l.Peek(0)
+		if err != nil {
+			return nil, err
+		}
+
+		if token.EOF() {
+			return nil, parserError("expecting string value in list, got end of input, right square bracket ']' missing", token.Pos)
+		}
+
+		// If we reached the square bracket, we are done, consume characters and return accumulated list
+		if p.l.isRightSquareBracket(token) {
+			p.l.mustLexNext()
+			return list, nil
+		}
+
+		if lookFor == "comma" {
+			if !p.l.isComma(token) {
+				return nil, parserError(fmt.Sprintf("expecting comma after string value item, got %T", p.l.getTokenType(token)), token.Pos)
+			}
+
+			// It's a comma, skip and change to look for name
+			p.l.mustLexNext()
+			lookFor = "name"
+			continue
+		}
+
+		var searchValue *StringLiteral
+
+		switch {
+		case p.l.isName(token):
+			searchValue = &StringLiteral{
+				Value: p.l.mustLexNext().String(),
+			}
+		case p.l.isQuoting(token):
+			literal, err := p.parseQuotedString()
+			if err != nil {
+				return nil, err
+			}
+
+			searchValue = literal
+		default:
+			return nil, parserError(fmt.Sprintf("expecting string value in list, either a string or quoted string got %s", p.l.getTokenType(token)), token.Pos)
+		}
+
+		list.Values = append(list.Values, searchValue)
+		lookFor = "comma"
+	}
 }
 
 func (p *Parser) parseQuotedString() (*StringLiteral, error) {

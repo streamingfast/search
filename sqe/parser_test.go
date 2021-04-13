@@ -1,6 +1,7 @@
 package sqe
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -87,6 +88,43 @@ func TestParser(t *testing.T) {
 			"single_quoted_string_multi_spaces",
 			`action :   '  test:value OR value AND other   	( 10 )!'`,
 			`action:'  test:value OR value AND other   	( 10 )!'`,
+			nil,
+		},
+
+		{
+			"search_term_strings_list_empty",
+			`a: [   ] `,
+			`a:[]`,
+			nil,
+		},
+		{
+			"search_term_strings_list_single_element",
+			`a: [  value ] `,
+			`a:[value]`,
+			nil,
+		},
+		{
+			"search_term_strings_list_multi_elements",
+			`a: [  value, second ] `,
+			`a:[value, second]`,
+			nil,
+		},
+		{
+			"search_term_strings_list_multi_elements_trailing_comma",
+			`a: [  value, second, ] `,
+			`a:[value, second]`,
+			nil,
+		},
+		{
+			"search_term_strings_list_string_single_quoted",
+			`a: [  value, second, 'third, value' ] `,
+			`a:[value, second, 'third, value']`,
+			nil,
+		},
+		{
+			"search_term_strings_list_string_double_quoted",
+			`a: [  value, second, "third, value" ] `,
+			`a:[value, second, "third, value"]`,
 			nil,
 		},
 
@@ -260,7 +298,7 @@ func TestParser(t *testing.T) {
 		{
 			"top_level_multi_or",
 			`a:1 OR b:2 OR c:3 OR d:4`,
-			`[a:1 || [b:2 || [c:3 || d:4]]]`,
+			`[a:1 || b:2 || c:3 || d:4]`,
 			nil,
 		},
 
@@ -316,7 +354,7 @@ func TestParser(t *testing.T) {
 		{
 			"ported_big_example",
 			`data.from:"eos" (action:transfer OR action:issue OR action:matant) data.to:from data.mama:to`,
-			`<data.from:"eos" && ([action:transfer || [action:issue || action:matant]]) && data.to:from && data.mama:to>`,
+			`<data.from:"eos" && ([action:transfer || action:issue || action:matant]) && data.to:from && data.mama:to>`,
 			nil,
 		},
 		{
@@ -388,6 +426,32 @@ func TestParser(t *testing.T) {
 			&ParseError{"expecting closing parenthesis, got end of input", pos(1, 0, 1)},
 		},
 		{
+			"error_unstarted_right_square_bracket",
+			`a: ]`,
+			"",
+			&ParseError{"expecting search value after colon, either a string, quoted string or strings list got RightSquareBracket", pos(1, 3, 4)},
+		},
+		{
+			"error_unclosed_over_left_square_bracket",
+			`a:[`,
+			"",
+			&ParseError{"expecting string value in list, got end of input, right square bracket ']' missing", pos(1, 3, 4)},
+		},
+		{
+			"error_unstarted_random_right_square_bracket",
+			`a:1 ]`,
+			"",
+			fmt.Errorf("missing expression after implicit 'and' clause: %w",
+				&ParseError{"expected a search term, minus sign or left parenthesis, got RightSquareBracket", pos(1, 4, 5)},
+			),
+		},
+		{
+			"error_unclosed_random_over_left_square_bracket",
+			`[ a:1`,
+			"",
+			&ParseError{"expected a search term, minus sign or left parenthesis, got LeftSquareBracket", pos(1, 0, 1)},
+		},
+		{
 			"error_deepness_reached",
 			buildFromOrToList(MaxRecursionDeepness + 1),
 			"",
@@ -404,7 +468,7 @@ func TestParser(t *testing.T) {
 			parser, err := NewParser(strings.NewReader(test.sqe))
 			require.NoError(t, err)
 
-			expression, err := parser.Parse()
+			expression, err := parser.Parse(context.Background())
 			require.Equal(t, test.expectedErr, err)
 
 			if test.expectedErr == nil && err == nil && test.expected != ValidateOnlyThatItParses {
@@ -437,7 +501,7 @@ func TestParserFromBigQuery(t *testing.T) {
 			parser, err := NewParser(strings.NewReader(query.Query))
 			require.NoError(t, err)
 
-			expression, err := parser.Parse()
+			expression, err := parser.Parse(context.Background())
 			require.NoError(t, err, "Parse failed for %q", query.Query)
 			require.NotNil(t, expression)
 		})

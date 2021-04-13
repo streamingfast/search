@@ -29,6 +29,8 @@ func TestLexer(t *testing.T) {
 		{"quoting characters start", `'some "some`, []string{"Quoting", "Name", "Space", "Quoting", "Name", "EOF"}},
 		{"quoting characters end", `some' some"`, []string{"Name", "Quoting", "Space", "Name", "Quoting", "EOF"}},
 
+		{"square_brackets", `[field, "double quoted"]`, []string{"LeftSquareBracket", "Name", "Comma", "Space", "Quoting", "Name", "Space", "Name", "Quoting", "RightSquareBracket", "EOF"}},
+
 		{"expresion_with_and", `action:one && field:two`, []string{"Name", "Colon", "Name", "Space", "AndOperator", "Space", "Name", "Colon", "Name", "EOF"}},
 	}
 

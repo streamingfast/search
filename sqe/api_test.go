@@ -15,6 +15,7 @@
 package sqe
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -91,7 +92,7 @@ func TestExpressionToBleveQuery(t *testing.T) {
 
 	for idx, test := range tests {
 		t.Run(fmt.Sprintf("index %d", idx+1), func(t *testing.T) {
-			ast, err := Parse(test.in)
+			ast, err := Parse(context.Background(), test.in)
 			require.NoError(t, err)
 
 			res := ExpressionToBleve(ast)
@@ -140,7 +141,7 @@ func TestExtractAllFieldNames(t *testing.T) {
 
 	for idx, test := range tests {
 		t.Run(fmt.Sprintf("index %d", idx+1), func(t *testing.T) {
-			ast, err := Parse(test.in)
+			ast, err := Parse(context.Background(), test.in)
 			require.NoError(t, err)
 
 			actuals := ExtractAllFieldNames(ast)

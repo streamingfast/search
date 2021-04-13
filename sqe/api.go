@@ -24,7 +24,7 @@ func ExtractAllFieldNames(expression Expression) (out []string) {
 		return nil
 	}
 
-	visitor := NewDepthFirstVisitor(onExpression)
+	visitor := NewDepthFirstVisitor(nil, onExpression)
 	expression.Visit(context.Background(), visitor)
 
 	i := 0
@@ -43,15 +43,27 @@ func TransformExpression(expr Expression, transformer FieldTransformer) error {
 	}
 
 	onExpression := func(_ context.Context, expr Expression) error {
-		if v, ok := expr.(*SearchTerm); ok {
-			if err := transformer.Transform(v); err != nil {
+		v, ok := expr.(*SearchTerm)
+		if !ok {
+			return nil
+		}
+
+		switch w := v.Value.(type) {
+		case *StringLiteral:
+			if err := transformer.Transform(v.Field, w); err != nil {
 				return fmt.Errorf("field %q transformation failed: %s", v.Field, err)
+			}
+		case *StringsList:
+			for i, value := range w.Values {
+				if err := transformer.Transform(v.Field, value); err != nil {
+					return fmt.Errorf("field %q list item at index %d transformation failed: %s", v.Field, i, err)
+				}
 			}
 		}
 
 		return nil
 	}
 
-	visitor := NewDepthFirstVisitor(onExpression)
+	visitor := NewDepthFirstVisitor(nil, onExpression)
 	return expr.Visit(context.Background(), visitor)
 }
