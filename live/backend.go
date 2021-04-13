@@ -141,7 +141,7 @@ func (b *LiveBackend) StreamMatches(req *pb.BackendRequest, stream pb.Backend_St
 	zlogger := logging.Logger(ctx, zlog)
 
 	zlogger.Debug("starting live backend query", zap.Reflect("request", req))
-	bquery, err := search.NewParsedQuery(req.Query)
+	bquery, err := search.NewParsedQuery(ctx, req.Query)
 	if err != nil {
 		if err == context.Canceled {
 			return derr.Status(codes.Canceled, "context canceled")

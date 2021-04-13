@@ -128,6 +128,10 @@ func (e *StringLiteral) Literal() string {
 	return e.Value
 }
 
+func (e *StringLiteral) SetValue(value string) {
+	e.Value = value
+}
+
 func (e *StringLiteral) String() string {
 	if e.QuotingChar != "" {
 		return fmt.Sprintf("%s%s%s", e.QuotingChar, e.Value, e.QuotingChar)

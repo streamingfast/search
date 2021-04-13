@@ -149,12 +149,13 @@ func (b *ArchiveBackend) StreamHeadInfo(r *pbhead.HeadInfoRequest, stream pbhead
 }
 
 func (b *ArchiveBackend) WarmupWithQuery(query string, low, high uint64) error {
-	bquery, err := search.NewParsedQuery(query)
+	ctx := context.Background()
+	bquery, err := search.NewParsedQuery(ctx, query)
 	if err != nil {
 		return err
 	}
 
-	return b.WarmUpArchive(context.Background(), low, high, bquery)
+	return b.WarmUpArchive(ctx, low, high, bquery)
 }
 
 // Archive.StreamMatches gRPC implementation
@@ -181,7 +182,7 @@ func (b *ArchiveBackend) StreamMatches(req *pbsearch.BackendRequest, stream pbse
 	zlogger := logging.Logger(ctx, zlog)
 	zlogger.Info("starting streaming search query processing")
 
-	bquery, err := search.NewParsedQuery(req.Query)
+	bquery, err := search.NewParsedQuery(ctx, req.Query)
 	if err != nil {
 		return err // status.New(codes.InvalidArgument, err.Error())
 	}

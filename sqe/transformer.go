@@ -15,12 +15,23 @@
 package sqe
 
 type FieldTransformer interface {
-	Transform(field string, value *StringLiteral) error
+	// TransformFieldName receives the field name and allow receiver of the invocation to update its name. The field's
+	// name is updated if the invocation returns a nil error.
+	TransformFieldName(field string) (string, error)
+
+	// TransformStringLiteral receives the field name (the updated one from a prior invocation of `TransformFieldName`)
+	// and a string literal (either a direct one or a sub-element from a `StringList`) and allows transformation of the
+	// `StringLiteral` value in place.
+	TransformStringLiteral(field string, value *StringLiteral) error
 }
 
 type noOpTransformer struct{}
 
-func (noOpTransformer) Transform(field string, value *StringLiteral) error {
+func (noOpTransformer) TransformFieldName(field string) (string, error) {
+	return field, nil
+}
+
+func (noOpTransformer) TransformStringLiteral(field string, value *StringLiteral) error {
 	return nil
 }
 

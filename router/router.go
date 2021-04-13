@@ -101,7 +101,7 @@ func (r *Router) StreamMatches(req *pb.RouterRequest, stream pb.Router_StreamMat
 		return status.Errorf(codes.Unavailable, "search is currently unavailable, try again shortly.")
 	}
 
-	_, err := search.NewParsedQuery(req.Query)
+	_, err := search.NewParsedQuery(ctx, req.Query)
 	if err != nil {
 		zlogger.Debug("invalid parsed query", zap.String("query", req.Query), zap.Error(err))
 		return err

@@ -134,7 +134,7 @@ func (f *ForkResolver) StreamUndoMatches(req *pbsearch.ForkResolveRequest, strea
 		zlogger.Warn("get_blocks called with no refs")
 		return derr.Statusf(codes.InvalidArgument, "invalid argument: no refs requested")
 	}
-	bquery, err := search.NewParsedQuery(req.Query)
+	bquery, err := search.NewParsedQuery(ctx, req.Query)
 	if err != nil {
 		if err == context.Canceled {
 			return derr.Status(codes.Canceled, "context canceled")

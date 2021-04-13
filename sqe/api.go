@@ -48,15 +48,24 @@ func TransformExpression(expr Expression, transformer FieldTransformer) error {
 			return nil
 		}
 
+		updatedFieldName, err := transformer.TransformFieldName(v.Field)
+		if err != nil {
+			return fmt.Errorf("field %q name transformation failed: %s", v.Field, err)
+		}
+
+		if updatedFieldName != "" {
+			v.Field = updatedFieldName
+		}
+
 		switch w := v.Value.(type) {
 		case *StringLiteral:
-			if err := transformer.Transform(v.Field, w); err != nil {
-				return fmt.Errorf("field %q transformation failed: %s", v.Field, err)
+			if err := transformer.TransformStringLiteral(v.Field, w); err != nil {
+				return fmt.Errorf("field %q string literal transformation failed: %s", v.Field, err)
 			}
 		case *StringsList:
 			for i, value := range w.Values {
-				if err := transformer.Transform(v.Field, value); err != nil {
-					return fmt.Errorf("field %q list item at index %d transformation failed: %s", v.Field, i, err)
+				if err := transformer.TransformStringLiteral(v.Field, value); err != nil {
+					return fmt.Errorf("field %q list item at index %d string literal transformation failed: %s", v.Field, i, err)
 				}
 			}
 		}

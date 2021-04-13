@@ -15,6 +15,7 @@
 package search
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -37,12 +38,12 @@ type BleveQuery struct {
 	Validator        BleveQueryValidator
 }
 
-func NewParsedQuery(rawQuery string) (*BleveQuery, error) {
+func NewParsedQuery(ctx context.Context, rawQuery string) (*BleveQuery, error) {
 	// TODO: move this where it belongs?  This infers a global which
 	// is annoying (GetBleveQueryFactory)
 	bquery := GetBleveQueryFactory(rawQuery)
 
-	if err := bquery.Parse(); err != nil {
+	if err := bquery.Parse(ctx); err != nil {
 		// FIXME: when the query failed, we want to return
 		// like in the REST call, but that one needs to wrap
 		// all the status.New()` with details. AppInvalidQueryError(ctx, err, bquery.Raw)
@@ -68,8 +69,8 @@ func (q *BleveQuery) Hash() (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-func (q *BleveQuery) Parse() error {
-	expr, err := sqe.Parse(q.Raw)
+func (q *BleveQuery) Parse(ctx context.Context) error {
+	expr, err := sqe.Parse(ctx, q.Raw)
 	if err != nil {
 		return err
 	}
