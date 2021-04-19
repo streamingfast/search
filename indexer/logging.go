@@ -19,6 +19,7 @@ import (
 	"go.uber.org/zap"
 )
 
+var traceEnabled = logging.IsTraceEnabled("search", "github.com/dfuse-io/search/indexer")
 var zlog *zap.Logger
 
 func init() {

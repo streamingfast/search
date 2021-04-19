@@ -380,6 +380,10 @@ func (p *Pipeline) writeIrreversibleBatch(docsList []*document.Document, blockNu
 	p.writable.Lock.Lock()
 	defer p.writable.Lock.Unlock()
 
+	if traceEnabled {
+		zlog.Debug("indexing mapped documents", zap.Int("doc_count", len(docsList)))
+	}
+
 	for _, doc := range docsList {
 		if err := p.writable.IndexBuilder.Index(doc); err != nil {
 			return fmt.Errorf("offline index builder Index: %w", err)
