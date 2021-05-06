@@ -36,8 +36,8 @@ func startBlockFromFileName(filename string) uint64 {
 var walkIndexfileFunc = walkIndexfile
 
 func (p *Pipeline) Upload(baseIndex uint64, indexPath string) error {
-	dstoreOperationTimeout := 90 * time.Second
-	return derr.Retry(5, func(ctx context.Context) error {
+	dstoreOperationTimeout := 10 * time.Minute
+	return derr.Retry(3, func(ctx context.Context) error {
 		ctx, cancel := context.WithTimeout(ctx, dstoreOperationTimeout)
 		defer cancel()
 		return p.upload(ctx, baseIndex, indexPath)
