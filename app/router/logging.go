@@ -22,5 +22,5 @@ import (
 var zlog *zap.Logger
 
 func init() {
-	logging.Register("github.com/dfuse-io/search/app/router", &zlog)
+	logging.Register("github.com/streamingfast/search/app/router", &zlog)
 }

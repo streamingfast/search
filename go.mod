@@ -1,4 +1,4 @@
-module github.com/dfuse-io/search
+module github.com/streamingfast/search
 
 require (
 	contrib.go.opencensus.io/exporter/stackdriver v0.12.6

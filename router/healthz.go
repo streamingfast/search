@@ -23,7 +23,7 @@ import (
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/dmesh"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/search/metrics"
+	"github.com/streamingfast/search/metrics"
 )
 
 // Check only validates "router.ready" bool and the shutting down process. Does *not* depend on contiguousness

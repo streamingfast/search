@@ -20,7 +20,7 @@ import (
 
 	"github.com/abourget/llerrgroup"
 	bsearch "github.com/blevesearch/bleve/search"
-	"github.com/dfuse-io/search"
+	"github.com/streamingfast/search"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )

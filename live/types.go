@@ -15,9 +15,9 @@
 package live
 
 import (
-	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/search"
+	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	"github.com/streamingfast/search"
 )
 
 func liveSearchMatchToProto(blk *bstream.Block, irrBlockNum uint64, undo bool, match search.SearchMatch) (*pb.SearchMatch, error) {

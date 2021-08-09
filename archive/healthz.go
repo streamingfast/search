@@ -21,7 +21,7 @@ import (
 
 	"github.com/dfuse-io/derr"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/search"
+	"github.com/streamingfast/search"
 )
 
 var LivenessQuery *search.BleveQuery

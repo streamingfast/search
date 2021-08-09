@@ -17,7 +17,7 @@ package archive
 import (
 	"time"
 
-	"github.com/dfuse-io/search/metrics"
+	"github.com/streamingfast/search/metrics"
 	"go.uber.org/zap"
 )
 

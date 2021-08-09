@@ -23,7 +23,7 @@ import (
 
 	"github.com/blevesearch/bleve/search/query"
 	"github.com/dfuse-io/derr"
-	"github.com/dfuse-io/search/sqe"
+	"github.com/streamingfast/search/sqe"
 	"google.golang.org/grpc/codes"
 )
 

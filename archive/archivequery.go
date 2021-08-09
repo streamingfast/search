@@ -22,8 +22,8 @@ import (
 
 	"github.com/abourget/llerrgroup"
 	"github.com/dfuse-io/logging"
-	"github.com/dfuse-io/search"
-	"github.com/dfuse-io/search/metrics"
+	"github.com/streamingfast/search"
+	"github.com/streamingfast/search/metrics"
 	"go.opencensus.io/trace"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"

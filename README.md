@@ -1,10 +1,10 @@
-# dfuse Search
-[![reference](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://pkg.go.dev/github.com/dfuse-io/search)
+# StreamingFast Search
+[![reference](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://pkg.go.dev/github.com/streamingfast/search)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-The dfuse Search engine is an innovative, both historical and real-time,
+The StreamingFast Search engine is an innovative, both historical and real-time,
 fork-aware, blockchain search engine.
-It is part of **[dfuse](https://github.com/dfuse-io/dfuse)**.
+It is part of **[StreamingFast](https://github.com/streamingfast/streamingfast)**.
 
 
 ## Features
@@ -17,17 +17,17 @@ It supports massively parallelized indexing of the chain (put in the
 power, and process 20TB of data in 30 minutes).  It is designed for
 high availability, and scales horizontally.
 
-It feeds from a _dfuse source_, like [dfuse for EOSIO](https://github.com/dfuse-io/dfuse-eosio)
+It feeds from a StreamingFast source_, like [EOSIO on StreamingFast](https://github.com/streamingfast/sf-eosio)
 
 
 ## Installation & Usage
 
-See the different protocol-specific `dfuse` binaries at https://github.com/dfuse-io/dfuse#protocols
+See the different protocol-specific `StreamingFast` binaries at https://github.com/streamingfast/streamingfast#protocols
 
 Current `search` implementations:
 
-* [**dfuse for EOSIO**](https://github.com/dfuse-io/dfuse-eosio)
-* **dfuse for Ethereum**, soon to be open sourced
+* [EOSIO on StreamingFast](https://github.com/streamingfast/sf-eosio)
+* [Ethereum on StreamingFast](https://github.com/streamingfast/sf-ethereum)
 
 
 ## Contributing
@@ -35,10 +35,10 @@ Current `search` implementations:
 **Issues and PR in this repo related strictly to the core search engine.**
 
 Report any protocol-specific issues in their
-[respective repositories](https://github.com/dfuse-io/dfuse#protocols)
+[respective repositories](https://github.com/streamingfast/streamingfast#protocols)
 
 **Please first refer to the general
-[dfuse contribution guide](https://github.com/dfuse-io/dfuse/blob/master/CONTRIBUTING.md)**,
+[StreamingFast contribution guide](https://github.com/streamingfast/streamingfast/blob/master/CONTRIBUTING.md)**,
 if you wish to contribute to this code base.
 
 This codebase uses unit tests extensively, please write and run tests.

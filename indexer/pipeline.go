@@ -27,8 +27,8 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/bstream/forkable"
 	"github.com/dfuse-io/dstore"
-	"github.com/dfuse-io/search"
-	"github.com/dfuse-io/search/metrics"
+	"github.com/streamingfast/search"
+	"github.com/streamingfast/search/metrics"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )

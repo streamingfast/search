@@ -23,7 +23,7 @@ import (
 	"time"
 
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
-	"github.com/dfuse-io/search"
+	"github.com/streamingfast/search"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )

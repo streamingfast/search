@@ -17,7 +17,7 @@ package archive
 import (
 	"testing"
 
-	"github.com/dfuse-io/search"
+	"github.com/streamingfast/search"
 	"github.com/stretchr/testify/assert"
 )
 

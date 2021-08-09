@@ -32,8 +32,8 @@ import (
 	"github.com/dfuse-io/dmesh"
 	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
-	"github.com/dfuse-io/search"
-	"github.com/dfuse-io/search/archive/roarcache"
+	"github.com/streamingfast/search"
+	"github.com/streamingfast/search/archive/roarcache"
 	"go.uber.org/zap"
 )
 

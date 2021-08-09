@@ -20,9 +20,9 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/dfuse-io/search"
-	"github.com/dfuse-io/search/archive/roarcache"
-	"github.com/dfuse-io/search/metrics"
+	"github.com/streamingfast/search"
+	"github.com/streamingfast/search/archive/roarcache"
+	"github.com/streamingfast/search/metrics"
 	"go.uber.org/zap"
 	"google.golang.org/appengine/memcache"
 )

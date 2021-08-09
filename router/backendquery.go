@@ -20,9 +20,9 @@ import (
 	"io"
 	"strconv"
 
-	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/dfuse-io/derr"
-	"github.com/dfuse-io/search/metrics"
+	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	"github.com/streamingfast/search/metrics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 )

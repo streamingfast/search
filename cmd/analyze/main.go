@@ -13,9 +13,9 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/derr"
 	"github.com/dfuse-io/logging"
-	"github.com/dfuse-io/search"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/streamingfast/search"
 	_ "go.uber.org/automaxprocs"
 	"go.uber.org/zap"
 )
@@ -27,7 +27,7 @@ var analyzeCmd = &cobra.Command{Use: "analyze", Short: "Print stats about a sing
 func init() {
 	analyzeCmd.PersistentFlags().IntP("shard-size", "s", 0, "Shard size to check integrity for")
 	analyzeCmd.PersistentFlags().Int("protocol-first-block", 0, "Protocol's lowest block number")
-	logging.Register("github.com/dfuse-io/search/cmd/analyze", &zlog)
+	logging.Register("github.com/streamingfast/search/cmd/analyze", &zlog)
 	logging.Set(logging.MustCreateLoggerWithServiceName("search-analyze"))
 }
 
