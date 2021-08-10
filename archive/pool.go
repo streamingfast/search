@@ -29,7 +29,7 @@ import (
 
 	"github.com/abourget/llerrgroup"
 	"github.com/blevesearch/bleve/index/scorch"
-	"github.com/dfuse-io/dstore"
+	"github.com/streamingfast/dstore"
 	"github.com/streamingfast/dmesh"
 	dmeshClient "github.com/streamingfast/dmesh/client"
 	"github.com/streamingfast/search"

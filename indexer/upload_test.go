@@ -22,7 +22,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/dfuse-io/dstore"
+	"github.com/streamingfast/dstore"
 	"github.com/magiconair/properties/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -25,7 +25,7 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/streamingfast/derr"
 	"github.com/dfuse-io/dgrpc"
-	"github.com/dfuse-io/dstore"
+	"github.com/streamingfast/dstore"
 	"github.com/dfuse-io/logging"
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
