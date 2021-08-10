@@ -14,7 +14,7 @@
 
 package indexer
 
-import "github.com/dfuse-io/dmetrics"
+import "github.com/streamingfast/dmetrics"
 
 var metricset = dmetrics.NewSet()
 

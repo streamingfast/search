@@ -15,7 +15,7 @@
 package router
 
 import (
-	"github.com/dfuse-io/dmetrics"
+	"github.com/streamingfast/dmetrics"
 )
 
 var metricset = dmetrics.NewSet()
