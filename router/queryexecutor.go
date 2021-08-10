@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"

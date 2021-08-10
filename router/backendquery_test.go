@@ -20,7 +20,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/magiconair/properties/assert"
 	"github.com/stretchr/testify/require"

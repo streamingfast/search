@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	"go.uber.org/zap"
 )
 

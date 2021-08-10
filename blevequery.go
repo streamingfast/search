@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/blevesearch/bleve/search/query"
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	"github.com/streamingfast/search/sqe"
 	"google.golang.org/grpc/codes"
 )

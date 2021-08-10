@@ -24,7 +24,7 @@ import (
 
 	stackdriverPropagation "contrib.go.opencensus.io/exporter/stackdriver/propagation"
 
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	"github.com/dfuse-io/logging"
 	"go.opencensus.io/plugin/ochttp"
 	"go.uber.org/zap"

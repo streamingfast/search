@@ -21,7 +21,7 @@ import (
 
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/bstream/forkable"
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	"github.com/dfuse-io/logging"
 	"github.com/streamingfast/search"
 	"go.uber.org/zap"

@@ -21,7 +21,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
 	pbheadinfo "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"

@@ -18,7 +18,7 @@ import (
 	"context"
 
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 )
 
 func (b *LiveBackend) Check(ctx context.Context, in *pbhealth.HealthCheckRequest) (*pbhealth.HealthCheckResponse, error) {

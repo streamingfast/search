@@ -20,7 +20,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
 	"github.com/streamingfast/search/metrics"
 	"go.uber.org/zap"

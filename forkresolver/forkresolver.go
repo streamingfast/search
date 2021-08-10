@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/dstore"
 	"github.com/dfuse-io/logging"

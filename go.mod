@@ -14,7 +14,6 @@ require (
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
 	github.com/dfuse-io/bstream v0.0.2-0.20210118170643-057893cea2ef
-	github.com/dfuse-io/derr v0.0.0-20201001203637-4dc9d8014152
 	github.com/dfuse-io/dgrpc v0.0.0-20201117184322-6724bb1e1b60
 	github.com/dfuse-io/dmetrics v0.0.0-20200406214800-499fc7b320ab
 	github.com/dfuse-io/dstore v0.1.0
@@ -32,6 +31,7 @@ require (
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/viper v1.6.2
+	github.com/streamingfast/derr v0.0.0-20210810022442-32249850a4fb
 	github.com/streamingfast/dmesh v0.0.0-20210809214524-5f9d6b7ebe89
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d // indirect

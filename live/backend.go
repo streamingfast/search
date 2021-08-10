@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/dfuse-io/bstream/hub"
-	"github.com/dfuse-io/derr"
+	"github.com/streamingfast/derr"
 	"github.com/dfuse-io/dgrpc"
 	"github.com/dfuse-io/logging"
 	pbhead "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
