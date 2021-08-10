@@ -22,7 +22,7 @@ import (
 	"time"
 
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/dgrpc"
+	"github.com/streamingfast/dgrpc"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )

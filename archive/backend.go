@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dfuse-io/dgrpc"
+	"github.com/streamingfast/dgrpc"
 	"github.com/dfuse-io/logging"
 	pbhead "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
 	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
