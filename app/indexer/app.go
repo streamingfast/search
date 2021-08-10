@@ -23,7 +23,7 @@ import (
 	"github.com/dfuse-io/dgrpc"
 	"github.com/streamingfast/dstore"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
-	"github.com/dfuse-io/shutter"
+	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/search"
 	"github.com/streamingfast/search/indexer"
 	"github.com/streamingfast/search/metrics"

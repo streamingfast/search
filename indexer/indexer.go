@@ -25,7 +25,7 @@ import (
 	"github.com/dfuse-io/bstream/blockstream"
 	"github.com/dfuse-io/bstream/forkable"
 	"github.com/streamingfast/dstore"
-	"github.com/dfuse-io/shutter"
+	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/search"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
