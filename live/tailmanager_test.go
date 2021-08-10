@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/dmesh"
-	dmeshClient "github.com/dfuse-io/dmesh/client"
+	"github.com/streamingfast/dmesh"
+	dmeshClient "github.com/streamingfast/dmesh/client"
 	"github.com/streamingfast/search"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

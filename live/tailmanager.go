@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/dmesh"
-	dmeshClient "github.com/dfuse-io/dmesh/client"
+	"github.com/streamingfast/dmesh"
+	dmeshClient "github.com/streamingfast/dmesh/client"
 	"github.com/streamingfast/search"
 	"github.com/streamingfast/search/metrics"
 	"go.uber.org/zap"

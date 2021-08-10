@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/dfuse-io/derr"
-	"github.com/dfuse-io/dmesh"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
+	"github.com/streamingfast/dmesh"
 	"github.com/streamingfast/search/metrics"
 )
 

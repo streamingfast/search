@@ -21,11 +21,11 @@ import (
 
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/dgrpc"
-	"github.com/dfuse-io/dmesh"
-	dmeshClient "github.com/dfuse-io/dmesh/client"
 	"github.com/dfuse-io/dstore"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/shutter"
+	"github.com/streamingfast/dmesh"
+	dmeshClient "github.com/streamingfast/dmesh/client"
 	"github.com/streamingfast/search"
 	"github.com/streamingfast/search/forkresolver"
 	"github.com/streamingfast/search/metrics"

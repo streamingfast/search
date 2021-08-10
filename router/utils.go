@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/dfuse-io/dmesh"
+	"github.com/streamingfast/dmesh"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

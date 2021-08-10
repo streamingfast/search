@@ -20,8 +20,8 @@ import (
 
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/bstream/hub"
-	"github.com/dfuse-io/dmesh"
 	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	"github.com/streamingfast/dmesh"
 	"github.com/streamingfast/search"
 	"go.uber.org/zap"
 )

@@ -22,10 +22,10 @@ import (
 	"github.com/streamingfast/search/metrics"
 
 	"github.com/dfuse-io/dgrpc"
-	dmeshClient "github.com/dfuse-io/dmesh/client"
 	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
 	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
 	"github.com/dfuse-io/shutter"
+	dmeshClient "github.com/streamingfast/dmesh/client"
 	"github.com/streamingfast/search/router"
 	"go.uber.org/zap"
 )

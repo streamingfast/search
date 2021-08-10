@@ -18,7 +18,7 @@ import (
 	"sort"
 
 	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/dmesh"
+	"github.com/streamingfast/dmesh"
 	"go.uber.org/zap"
 )
 

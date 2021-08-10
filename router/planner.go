@@ -18,7 +18,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/dfuse-io/dmesh"
+	"github.com/streamingfast/dmesh"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

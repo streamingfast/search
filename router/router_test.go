@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/dmesh"
 	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
+	"github.com/streamingfast/dmesh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
