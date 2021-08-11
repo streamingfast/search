@@ -28,7 +28,7 @@ import (
 	bsearch "github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/collector"
 	"github.com/blevesearch/bleve/search/query"
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"go.uber.org/zap"
 )
 

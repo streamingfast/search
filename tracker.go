@@ -4,7 +4,7 @@ import (
 	"context"
 	"sort"
 
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/dmesh"
 	"go.uber.org/zap"
 )

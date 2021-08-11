@@ -18,8 +18,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/bstream/hub"
+	"github.com/streamingfast/bstream"
+	"github.com/streamingfast/bstream/hub"
 	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"github.com/streamingfast/dmesh"
 	"github.com/streamingfast/search"

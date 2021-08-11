@@ -22,7 +22,7 @@ import (
 	"github.com/blevesearch/bleve/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/mapping"
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 )
 
 type BlockMapper interface {

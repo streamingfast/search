@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/dmesh"
 	dmeshClient "github.com/streamingfast/dmesh/client"
 	"github.com/streamingfast/search"

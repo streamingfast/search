@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	pbblockmeta "github.com/streamingfast/pbgo/dfuse/blockmeta/v1"
 	"github.com/streamingfast/dmesh"
 	"github.com/stretchr/testify/assert"

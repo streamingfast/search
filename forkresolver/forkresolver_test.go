@@ -20,7 +20,7 @@ import (
 
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/mapping"
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/dstore"
 	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"github.com/streamingfast/dmesh"

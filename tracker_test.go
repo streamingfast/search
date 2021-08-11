@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/dmesh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

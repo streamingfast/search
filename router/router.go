@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/dgrpc"
 	"github.com/dfuse-io/logging"

@@ -17,7 +17,7 @@ package router
 import (
 	"testing"
 
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/derr"
 	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"github.com/stretchr/testify/assert"

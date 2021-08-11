@@ -10,7 +10,7 @@ import (
 	"strconv"
 
 	"github.com/abourget/viperbind"
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/derr"
 	"github.com/dfuse-io/logging"
 	"github.com/spf13/cobra"

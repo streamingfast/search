@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/dfuse-io/bstream"
-	"github.com/dfuse-io/bstream/forkable"
+	"github.com/streamingfast/bstream"
+	"github.com/streamingfast/bstream/forkable"
 	"github.com/streamingfast/derr"
 	"github.com/dfuse-io/logging"
 	"github.com/streamingfast/search"

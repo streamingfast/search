@@ -17,7 +17,7 @@ package search
 import (
 	"context"
 
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	pbheadinfo "github.com/streamingfast/pbgo/dfuse/headinfo/v1"
 	"go.uber.org/zap"
 )

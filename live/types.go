@@ -15,7 +15,7 @@
 package live
 
 import (
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"github.com/streamingfast/search"
 )

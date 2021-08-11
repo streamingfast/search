@@ -11,7 +11,6 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/dfuse-io/bstream v0.0.2-0.20210811160908-fc6cb0861d48
 	github.com/dfuse-io/dbin v0.0.0-20200406215642-ec7f22e794eb // indirect
 	github.com/dfuse-io/dgrpc v0.0.0-20210810041652-d033fee35ae0 // indirect
 	github.com/dfuse-io/dmetrics v0.0.0-20200406214800-499fc7b320ab // indirect
@@ -29,6 +28,7 @@ require (
 	github.com/rs/xid v1.2.1 // indirect
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/viper v1.6.2
+	github.com/streamingfast/bstream v0.0.2-0.20210811172811-82db64e6763f // indirect
 	github.com/streamingfast/derr v0.0.0-20210810022442-32249850a4fb
 	github.com/streamingfast/dgrpc v0.0.0-20210811160823-a39dfa7fff0d // indirect
 	github.com/streamingfast/dmesh v0.0.0-20210810194153-7e56f639d42f

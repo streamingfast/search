@@ -20,7 +20,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/dfuse-io/bstream/hub"
+	"github.com/streamingfast/bstream/hub"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/dgrpc"
 	"github.com/dfuse-io/logging"

@@ -24,7 +24,7 @@ import (
 	_ "github.com/blevesearch/bleve/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch"
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	"go.uber.org/zap"
 )
 

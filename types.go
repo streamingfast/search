@@ -15,7 +15,7 @@
 package search
 
 import (
-	"github.com/dfuse-io/bstream"
+	"github.com/streamingfast/bstream"
 	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
 )
 
