@@ -23,7 +23,7 @@ import (
 	"github.com/blevesearch/bleve/index"
 	bsearch "github.com/blevesearch/bleve/search"
 	"github.com/blevesearch/bleve/search/collector"
-	"github.com/dfuse-io/logging"
+	"github.com/streamingfast/logging"
 	"go.uber.org/zap"
 )
 

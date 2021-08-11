@@ -12,7 +12,7 @@ import (
 	"github.com/abourget/viperbind"
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/derr"
-	"github.com/dfuse-io/logging"
+	"github.com/streamingfast/logging"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/streamingfast/search"

@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/streamingfast/dgrpc"
-	"github.com/dfuse-io/logging"
+	"github.com/streamingfast/logging"
 	pbhead "github.com/streamingfast/pbgo/dfuse/headinfo/v1"
 	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
 	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"

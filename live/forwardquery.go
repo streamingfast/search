@@ -22,7 +22,7 @@ import (
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/bstream/forkable"
 	"github.com/streamingfast/derr"
-	"github.com/dfuse-io/logging"
+	"github.com/streamingfast/logging"
 	"github.com/streamingfast/search"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"

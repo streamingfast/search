@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/abourget/llerrgroup"
-	"github.com/dfuse-io/logging"
+	"github.com/streamingfast/logging"
 	"github.com/streamingfast/search"
 	"github.com/streamingfast/search/metrics"
 	"go.opencensus.io/trace"

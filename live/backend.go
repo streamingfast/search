@@ -23,7 +23,7 @@ import (
 	"github.com/streamingfast/bstream/hub"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/dgrpc"
-	"github.com/dfuse-io/logging"
+	"github.com/streamingfast/logging"
 	pbhead "github.com/streamingfast/pbgo/dfuse/headinfo/v1"
 	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
 	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
