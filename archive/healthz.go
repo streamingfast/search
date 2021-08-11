@@ -20,7 +20,7 @@ import (
 	"net/http"
 
 	"github.com/streamingfast/derr"
-	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
+	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/streamingfast/search"
 )
 

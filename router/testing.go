@@ -17,7 +17,7 @@ package router
 import (
 	"context"
 
-	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

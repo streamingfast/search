@@ -7,7 +7,7 @@ import (
 
 	bsearch "github.com/blevesearch/bleve/search"
 	"github.com/dfuse-io/bstream"
-	v1 "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	v1 "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"go.uber.org/zap"
 )
 

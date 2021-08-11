@@ -22,7 +22,7 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/dstore"
-	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
+	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/dmesh"
 	dmeshClient "github.com/streamingfast/dmesh/client"

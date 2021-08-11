@@ -21,7 +21,7 @@ import (
 	"strconv"
 
 	"github.com/streamingfast/derr"
-	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"github.com/streamingfast/search/metrics"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"

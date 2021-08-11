@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/dfuse-io/bstream"
-	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
+	pbblockmeta "github.com/streamingfast/pbgo/dfuse/blockmeta/v1"
 	"github.com/streamingfast/dmesh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

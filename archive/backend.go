@@ -23,9 +23,9 @@ import (
 
 	"github.com/streamingfast/dgrpc"
 	"github.com/dfuse-io/logging"
-	pbhead "github.com/dfuse-io/pbgo/dfuse/headinfo/v1"
-	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
-	pbhealth "github.com/dfuse-io/pbgo/grpc/health/v1"
+	pbhead "github.com/streamingfast/pbgo/dfuse/headinfo/v1"
+	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
+	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/streamingfast/shutter"
 	"github.com/gorilla/mux"
 	"github.com/streamingfast/dmesh"

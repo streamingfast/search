@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"io"
 
-	pbblockmeta "github.com/dfuse-io/pbgo/dfuse/blockmeta/v1"
-	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	pbblockmeta "github.com/streamingfast/pbgo/dfuse/blockmeta/v1"
+	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"github.com/streamingfast/dmesh"
 	"github.com/streamingfast/search/metrics"
 	"go.uber.org/zap"

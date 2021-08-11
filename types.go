@@ -16,7 +16,7 @@ package search
 
 import (
 	"github.com/dfuse-io/bstream"
-	pbsearch "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
 )
 
 type SearchMatch interface {

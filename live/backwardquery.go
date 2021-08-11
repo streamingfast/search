@@ -22,7 +22,7 @@ import (
 	"github.com/dfuse-io/bstream"
 	"github.com/dfuse-io/bstream/forkable"
 	"github.com/streamingfast/derr"
-	pb "github.com/dfuse-io/pbgo/dfuse/search/v1"
+	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"github.com/streamingfast/search"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
