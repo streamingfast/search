@@ -15,7 +15,7 @@
 package archive
 
 import (
-	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
+	pb "github.com/streamingfast/pbgo/sf/search/v1"
 	"github.com/streamingfast/search"
 )
 

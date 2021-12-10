@@ -21,9 +21,9 @@ import (
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/streamingfast/bstream"
-	"github.com/streamingfast/dstore"
-	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
 	"github.com/streamingfast/dmesh"
+	"github.com/streamingfast/dstore"
+	pb "github.com/streamingfast/pbgo/sf/search/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

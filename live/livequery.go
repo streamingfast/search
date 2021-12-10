@@ -20,7 +20,7 @@ import (
 
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/bstream/hub"
-	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
+	pb "github.com/streamingfast/pbgo/sf/search/v1"
 	"github.com/streamingfast/dmesh"
 	"github.com/streamingfast/search"
 	"go.uber.org/zap"

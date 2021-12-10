@@ -25,14 +25,14 @@ import (
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/dgrpc"
-	"github.com/streamingfast/dstore"
-	"github.com/streamingfast/logging"
-	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
-	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
-	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/dmesh"
 	dmeshClient "github.com/streamingfast/dmesh/client"
+	"github.com/streamingfast/dstore"
+	"github.com/streamingfast/logging"
+	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
+	pbsearch "github.com/streamingfast/pbgo/sf/search/v1"
 	"github.com/streamingfast/search"
+	"github.com/streamingfast/shutter"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 )
@@ -253,12 +253,22 @@ func (f *ForkResolver) getBlocksDescending(ctx context.Context, refs []*pbsearch
 		})
 	}
 
-	src := bstream.NewFileSource(f.blocksStore, lowest, 1, filePreprocessor, h)
-	src.SetNotFoundCallback(func(missing uint64) { // ensure we don't stall here if request was for blocks future
-		zlog.Debug("missing block file, allowing some time to finish processing existing files before hard failing to prevent stalling", zap.Uint64("missing", missing), zap.Duration("shutdown_delay", ShutdownDelayOnFileNotFound))
-		time.Sleep(ShutdownDelayOnFileNotFound)
-		src.Shutdown(fmt.Errorf("cannot run forkresolver on missing block files, missing %d", missing))
-	})
+	src := bstream.NewFileSource(
+		f.blocksStore,
+		lowest,
+		1,
+		filePreprocessor,
+		h,
+		bstream.FileSourceWithNotFoundCallBack(func(blockNum uint64, highestFileProcessedBlock bstream.BlockRef, handler bstream.Handler, logger *zap.Logger) error {
+			zlog.Debug("missing block file, allowing some time to finish processing existing files before hard failing to prevent stalling",
+				zap.Uint64("missing", blockNum),
+				zap.Duration("shutdown_delay", ShutdownDelayOnFileNotFound),
+			)
+			time.Sleep(ShutdownDelayOnFileNotFound)
+			return fmt.Errorf("cannot run forkresolver on missing block files, missing %d", blockNum)
+		}),
+	)
+
 	go src.Run()
 
 	select {

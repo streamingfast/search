@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/streamingfast/bstream"
-	pbheadinfo "github.com/streamingfast/pbgo/dfuse/headinfo/v1"
+	pbheadinfo "github.com/streamingfast/pbgo/sf/headinfo/v1"
 	"go.uber.org/zap"
 )
 

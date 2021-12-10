@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/streamingfast/derr"
-	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
+	pb "github.com/streamingfast/pbgo/sf/search/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

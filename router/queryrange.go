@@ -19,7 +19,7 @@ import (
 
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/derr"
-	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
+	pbsearch "github.com/streamingfast/pbgo/sf/search/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

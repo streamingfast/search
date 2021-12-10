@@ -23,8 +23,8 @@ import (
 
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/logging"
-	pbhead "github.com/streamingfast/pbgo/dfuse/headinfo/v1"
-	pbsearch "github.com/streamingfast/pbgo/dfuse/search/v1"
+	pbhead "github.com/streamingfast/pbgo/sf/headinfo/v1"
+	pbsearch "github.com/streamingfast/pbgo/sf/search/v1"
 	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/streamingfast/shutter"
 	"github.com/gorilla/mux"

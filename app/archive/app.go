@@ -24,7 +24,7 @@ import (
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/dstore"
-	pbheadinfo "github.com/streamingfast/pbgo/dfuse/headinfo/v1"
+	pbheadinfo "github.com/streamingfast/pbgo/sf/headinfo/v1"
 	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/dmesh"

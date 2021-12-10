@@ -20,7 +20,7 @@ import (
 	"io"
 	"testing"
 
-	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
+	pb "github.com/streamingfast/pbgo/sf/search/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"

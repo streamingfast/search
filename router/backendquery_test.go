@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/streamingfast/derr"
-	pb "github.com/streamingfast/pbgo/dfuse/search/v1"
+	pb "github.com/streamingfast/pbgo/sf/search/v1"
 	"github.com/magiconair/properties/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"

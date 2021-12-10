@@ -22,7 +22,7 @@ import (
 	"github.com/streamingfast/search/metrics"
 
 	"github.com/streamingfast/dgrpc"
-	pbblockmeta "github.com/streamingfast/pbgo/dfuse/blockmeta/v1"
+	pbblockmeta "github.com/streamingfast/pbgo/sf/blockmeta/v1"
 	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/streamingfast/shutter"
 	dmeshClient "github.com/streamingfast/dmesh/client"
