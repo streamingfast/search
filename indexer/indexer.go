@@ -25,8 +25,8 @@ import (
 	"github.com/streamingfast/bstream/blockstream"
 	"github.com/streamingfast/bstream/forkable"
 	"github.com/streamingfast/dstore"
-	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/search"
+	"github.com/streamingfast/shutter"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
@@ -192,7 +192,7 @@ func (i *Indexer) BuildLivePipeline(targetStartBlockNum, fileSourceStartBlockNum
 
 	options := []forkable.Option{
 		forkable.WithLogger(zlog),
-		forkable.WithFilters(forkable.StepNew | forkable.StepIrreversible),
+		forkable.WithFilters(bstream.StepNew | bstream.StepIrreversible),
 	}
 	if previousIrreversibleID != "" {
 		libRef := bstream.NewBlockRef(previousIrreversibleID, fileSourceStartBlockNum)
@@ -229,7 +229,7 @@ func (i *Indexer) BuildBatchPipeline(targetStartBlockNum, fileSourceStartBlockNu
 
 	options := []forkable.Option{
 		forkable.WithLogger(zlog),
-		forkable.WithFilters(forkable.StepIrreversible),
+		forkable.WithFilters(bstream.StepIrreversible),
 	}
 
 	if previousIrreversibleID != "" {

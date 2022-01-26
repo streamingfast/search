@@ -143,9 +143,10 @@ func (q *LiveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forka
 			return derr.Status(codes.Canceled, "context canceled")
 		}
 
-		fObj := obj.(*forkable.ForkableObject)
+		step := obj.(bstream.Stepable).Step()
+		wobj := obj.(bstream.ObjectWrapper).WrappedObject()
 
-		if fObj.Step == forkable.StepUndo {
+		if step == bstream.StepUndo {
 			if len(q.backwardBlocks) == 0 {
 				return nil
 			}
@@ -153,11 +154,11 @@ func (q *LiveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forka
 			q.backwardBlocks = q.backwardBlocks[:len(q.backwardBlocks)-1]
 			return nil
 		}
-		if fObj.Step != forkable.StepNew {
+		if step != bstream.StepNew {
 			panic("this handler only supports Undo and New steps")
 		}
 
-		idx := fObj.Obj.(*search.SingleIndex)
+		idx := wobj.(*search.SingleIndex)
 
 		q.backwardBlocks = append(q.backwardBlocks, &IndexedBlock{
 			Blk: blk,
@@ -177,7 +178,7 @@ func (q *LiveQuery) setupBackwardPipeline(firstBlockRef bstream.BlockRef) *forka
 	}
 	options := []forkable.Option{
 		forkable.WithInclusiveLIB(firstBlockRef),
-		forkable.WithFilters(forkable.StepNew | forkable.StepUndo),
+		forkable.WithFilters(bstream.StepNew | bstream.StepUndo),
 	}
 
 	if q.Request.NavigateFromBlockID != "" {

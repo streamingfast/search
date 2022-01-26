@@ -111,9 +111,9 @@ func (q *LiveQuery) setupForwardPipeline(libRef bstream.BlockRef) (bstream.Sourc
 	}
 
 	if q.Request.WithReversible {
-		options = append(options, forkable.WithFilters(forkable.StepNew|forkable.StepUndo))
+		options = append(options, forkable.WithFilters(bstream.StepNew|bstream.StepUndo))
 	} else {
-		options = append(options, forkable.WithFilters(forkable.StepIrreversible))
+		options = append(options, forkable.WithFilters(bstream.StepIrreversible))
 	}
 
 	forkableHandler := forkable.New(postForkGate, options...)
@@ -158,8 +158,8 @@ func (q *LiveQuery) ForwardProcessBlock(blk *bstream.Block, obj interface{}) err
 		return search.ErrEndOfRange
 	}
 
-	fObj := obj.(*forkable.ForkableObject)
-	idx := fObj.Obj.(*search.SingleIndex)
+	step := obj.(bstream.Stepable).Step()
+	idx := obj.(bstream.ObjectWrapper).WrappedObject().(*search.SingleIndex)
 
 	matches, err := search.RunSingleIndexQuery(q.Ctx, false, 0, math.MaxUint64, q.MatchCollector, q.BleveQuery, idx.Index, func() {}, nil)
 	if err != nil {
@@ -173,11 +173,11 @@ func (q *LiveQuery) ForwardProcessBlock(blk *bstream.Block, obj interface{}) err
 	q.LastBlockRead = blk.Num()
 
 	irrBlockNum := blk.LIBNum()
-	if fObj.Step == forkable.StepIrreversible {
+	if step == bstream.StepIrreversible {
 		irrBlockNum = blk.Num()
 	}
 
-	err = q.ProcessMatches(matches, blk, irrBlockNum, fObj.Step)
+	err = q.ProcessMatches(matches, blk, irrBlockNum, step)
 	if err != nil {
 		return err
 	}
@@ -198,9 +198,9 @@ func (q *LiveQuery) ForwardProcessBlock(blk *bstream.Block, obj interface{}) err
 	return nil
 }
 
-func (q *LiveQuery) ProcessMatches(matches []search.SearchMatch, blk *bstream.Block, irrBlockNum uint64, step forkable.StepType) error {
+func (q *LiveQuery) ProcessMatches(matches []search.SearchMatch, blk *bstream.Block, irrBlockNum uint64, step bstream.StepType) error {
 	for _, match := range matches {
-		matchProto, err := liveSearchMatchToProto(blk, irrBlockNum, step == forkable.StepUndo, match)
+		matchProto, err := liveSearchMatchToProto(blk, irrBlockNum, step == bstream.StepUndo, match)
 		if err != nil {
 			return fmt.Errorf("unable to create search match proto: %s", err)
 		}
@@ -215,7 +215,7 @@ func (q *LiveQuery) ProcessMatches(matches []search.SearchMatch, blk *bstream.Bl
 	}
 
 	// send live marker
-	if q.LiveMarkerReached && step != forkable.StepUndo &&
+	if q.LiveMarkerReached && step != bstream.StepUndo &&
 		blk.Num() >= q.LiveMarkerLastSentBlockNum+q.Request.LiveMarkerInterval {
 
 		var searchMatch search.SearchMatch

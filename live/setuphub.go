@@ -108,9 +108,9 @@ func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub
 			)
 		}
 
-		fObj := obj.(*forkable.ForkableObject)
-		switch fObj.Step {
-		case forkable.StepNew:
+		step := obj.(bstream.Stepable).Step()
+		switch step {
+		case bstream.StepNew:
 			zlog.Debug("step new in launchBlockProgressPeerPublishing", zap.Uint64("block_num", blk.Num()))
 			headBlockTimeDrift.SetBlockTime(blk.Time())
 
@@ -121,7 +121,7 @@ func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub
 			b.dmeshClient.PublishWithin(b.searchPeer, 1*time.Second)
 			headBlockNumber.SetUint64(blk.Num())
 
-		case forkable.StepIrreversible:
+		case bstream.StepIrreversible:
 			zlog.Debug("step irreversible in launchBlockProgressPeerPublishing", zap.Uint64("block_num", blk.Num()))
 
 			b.searchPeer.Locked(func() {
@@ -137,7 +137,7 @@ func (b *LiveBackend) launchBlockProgressPeerPublishing(hub *hub.SubscriptionHub
 		return nil
 	})
 
-	fk := forkable.New(dmeshHandler, forkable.WithLogger(zlog), forkable.WithFilters(forkable.StepNew|forkable.StepIrreversible))
+	fk := forkable.New(dmeshHandler, forkable.WithLogger(zlog), forkable.WithFilters(bstream.StepNew|bstream.StepIrreversible))
 	src := hub.NewSource(fk, 0)
 
 	b.OnTerminating(src.Shutdown)

@@ -25,7 +25,6 @@ import (
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index/scorch"
 	"github.com/streamingfast/bstream"
-	"github.com/streamingfast/bstream/forkable"
 	"github.com/streamingfast/dstore"
 	"github.com/streamingfast/search"
 	"github.com/streamingfast/search/metrics"
@@ -118,8 +117,9 @@ func (p *Pipeline) WaitOnUploads() {
 	p.uploadGroup.Wait()
 }
 
-func (pipe *Pipeline) ProcessBlock(blk *bstream.Block, objWrap interface{}) error {
-	obj := objWrap.(*forkable.ForkableObject)
+func (pipe *Pipeline) ProcessBlock(blk *bstream.Block, obj interface{}) error {
+	step := obj.(bstream.Stepable).Step()
+	wobj := obj.(bstream.ObjectWrapper).WrappedObject()
 
 	blockTime := blk.Time()
 
@@ -133,10 +133,8 @@ func (pipe *Pipeline) ProcessBlock(blk *bstream.Block, objWrap interface{}) erro
 	//FIXME: Should wrap this in a check? make sure it is not alreay ready
 	pipe.indexer.setReady()
 
-	step := obj.Step
-
 	switch step {
-	case forkable.StepNew:
+	case bstream.StepNew:
 
 		// Just record the head block for healthz
 		pipe.indexer.headBlockTimeLock.Lock()
@@ -147,17 +145,17 @@ func (pipe *Pipeline) ProcessBlock(blk *bstream.Block, objWrap interface{}) erro
 		headBlockNumber.SetUint64(blk.Num())
 		return nil
 
-	case forkable.StepIrreversible:
+	case bstream.StepIrreversible:
 
 		var docsList []*document.Document
-		if obj.Obj == nil { // was not preprocessed
+		if wobj == nil { // was not preprocessed
 			preprocessedObj, err := search.AsPreprocessBlock(pipe.mapper)(blk)
 			if err != nil {
 				return err
 			}
 			docsList = preprocessedObj.([]*document.Document)
 		} else {
-			docsList = obj.Obj.([]*document.Document)
+			docsList = wobj.([]*document.Document)
 		}
 		err := pipe.processIrreversibleBlock(blk, docsList)
 		if err != nil {
