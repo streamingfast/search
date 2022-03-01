@@ -1,8 +1,10 @@
 module github.com/streamingfast/search
 
+go 1.16
+
 require (
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.8
-	github.com/RoaringBitmap/roaring v0.4.23
+	github.com/RoaringBitmap/roaring v0.9.4
 	github.com/abourget/llerrgroup v0.2.0
 	github.com/abourget/viperbind v0.1.0
 	github.com/alecthomas/participle v0.7.1
@@ -13,12 +15,13 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/viper v1.6.2
-	github.com/streamingfast/bstream v0.0.2-0.20220301153811-b8a6af964e31
-	github.com/streamingfast/derr v0.0.0-20210811180100-9138d738bcec
+	github.com/streamingfast/bstream v0.0.2-0.20220301162141-6630bbe5996c
+	github.com/streamingfast/derr v0.0.0-20220301163149-de09cb18fc70
 	github.com/streamingfast/dgrpc v0.0.0-20220301153539-536adf71b594
-	github.com/streamingfast/dmesh v0.0.0-20210812021201-c7b6c5bd36aa
+	github.com/streamingfast/dmesh v0.0.0-20220301163726-9fdd154b47a3
 	github.com/streamingfast/dmetrics v0.0.0-20210811180524-8494aeb34447
-	github.com/streamingfast/dstore v0.1.1-0.20211012134319-16e840827e38
+	github.com/streamingfast/dstore v0.1.1-0.20220203133825-30eb2f9c5cd3
+	github.com/streamingfast/dtracing v0.0.0-20220301163030-15ce3f71dd1c // indirect
 	github.com/streamingfast/logging v0.0.0-20220222131651-12c3943aac2e
 	github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a
 	github.com/streamingfast/shutter v1.5.0
@@ -31,5 +34,3 @@ require (
 	google.golang.org/appengine v1.6.7
 	google.golang.org/grpc v1.44.0
 )
-
-go 1.13
