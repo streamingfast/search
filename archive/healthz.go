@@ -18,10 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/streamingfast/derr"
-	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/streamingfast/search"
+	pbhealth "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var LivenessQuery *search.BleveQuery
@@ -53,16 +54,42 @@ func (b *ArchiveBackend) healthzHandler() http.HandlerFunc {
 	}
 }
 
-// GRPC health check endpoint
 func (b *ArchiveBackend) Check(ctx context.Context, in *pbhealth.HealthCheckRequest) (*pbhealth.HealthCheckResponse, error) {
+	return &pbhealth.HealthCheckResponse{
+		Status: b.healthStatus(),
+	}, nil
+}
 
+func (b *ArchiveBackend) Watch(req *pbhealth.HealthCheckRequest, stream pbhealth.Health_WatchServer) error {
+	currentStatus := pbhealth.HealthCheckResponse_SERVICE_UNKNOWN
+	waitTime := 0 * time.Second
+
+	for {
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case <-time.After(waitTime):
+			newStatus := b.healthStatus()
+			waitTime = 5 * time.Second
+
+			if newStatus != currentStatus {
+				currentStatus = newStatus
+
+				if err := stream.Send(&pbhealth.HealthCheckResponse{Status: currentStatus}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+}
+
+func (b *ArchiveBackend) healthStatus() pbhealth.HealthCheckResponse_ServingStatus {
 	h := b.healthReport()
+
 	status := pbhealth.HealthCheckResponse_NOT_SERVING
 	if h.Ready && !h.ShuttingDown && !derr.IsShuttingDown() {
 		status = pbhealth.HealthCheckResponse_SERVING
 	}
 
-	return &pbhealth.HealthCheckResponse{
-		Status: status,
-	}, nil
+	return status
 }

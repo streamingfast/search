@@ -18,10 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
-	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	pbhealth "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func (f *ForkResolver) serveHealthz() {
@@ -60,8 +61,34 @@ func (f *ForkResolver) healthzHandler() http.HandlerFunc {
 }
 
 func (f *ForkResolver) Check(ctx context.Context, in *pbhealth.HealthCheckRequest) (*pbhealth.HealthCheckResponse, error) {
-	status := pbhealth.HealthCheckResponse_SERVING
 	return &pbhealth.HealthCheckResponse{
-		Status: status,
+		Status: f.healthStatus(),
 	}, nil
+}
+
+func (f *ForkResolver) Watch(req *pbhealth.HealthCheckRequest, stream pbhealth.Health_WatchServer) error {
+	currentStatus := pbhealth.HealthCheckResponse_SERVICE_UNKNOWN
+	waitTime := 0 * time.Second
+
+	for {
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case <-time.After(waitTime):
+			newStatus := f.healthStatus()
+			waitTime = 5 * time.Second
+
+			if newStatus != currentStatus {
+				currentStatus = newStatus
+
+				if err := stream.Send(&pbhealth.HealthCheckResponse{Status: currentStatus}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+}
+
+func (f *ForkResolver) healthStatus() pbhealth.HealthCheckResponse_ServingStatus {
+	return pbhealth.HealthCheckResponse_SERVING
 }

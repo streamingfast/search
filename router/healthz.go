@@ -21,23 +21,48 @@ import (
 	"time"
 
 	"github.com/streamingfast/derr"
-	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	"github.com/streamingfast/dmesh"
 	"github.com/streamingfast/search/metrics"
+	pbhealth "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-// Check only validates "router.ready" bool and the shutting down process. Does *not* depend on contiguousness
 func (r *Router) Check(ctx context.Context, in *pbhealth.HealthCheckRequest) (*pbhealth.HealthCheckResponse, error) {
+	return &pbhealth.HealthCheckResponse{
+		Status: r.healthStatus(),
+	}, nil
+}
+
+func (r *Router) Watch(req *pbhealth.HealthCheckRequest, stream pbhealth.Health_WatchServer) error {
+	currentStatus := pbhealth.HealthCheckResponse_SERVICE_UNKNOWN
+	waitTime := 0 * time.Second
+
+	for {
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case <-time.After(waitTime):
+			newStatus := r.healthStatus()
+			waitTime = 5 * time.Second
+
+			if newStatus != currentStatus {
+				currentStatus = newStatus
+
+				if err := stream.Send(&pbhealth.HealthCheckResponse{Status: currentStatus}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+}
+
+func (r *Router) healthStatus() pbhealth.HealthCheckResponse_ServingStatus {
 	status := pbhealth.HealthCheckResponse_NOT_SERVING
 
 	if r.ready.Load() && !derr.IsShuttingDown() {
 		status = pbhealth.HealthCheckResponse_SERVING
 	}
 
-	return &pbhealth.HealthCheckResponse{
-		Status: status,
-	}, nil
-
+	return status
 }
 
 func (r *Router) setRouterAvailability() {

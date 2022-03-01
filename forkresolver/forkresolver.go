@@ -29,12 +29,12 @@ import (
 	dmeshClient "github.com/streamingfast/dmesh/client"
 	"github.com/streamingfast/dstore"
 	"github.com/streamingfast/logging"
-	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
 	pbsearch "github.com/streamingfast/pbgo/sf/search/v1"
 	"github.com/streamingfast/search"
 	"github.com/streamingfast/shutter"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
+	pbhealth "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var MaxLookupBlocks = uint64(10000)

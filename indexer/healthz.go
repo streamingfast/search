@@ -21,10 +21,10 @@ import (
 	"net/http"
 	"time"
 
-	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
-	"github.com/streamingfast/dgrpc"
 	"github.com/gorilla/mux"
+	"github.com/streamingfast/dgrpc"
 	"go.uber.org/zap"
+	pbhealth "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type healthz struct {
@@ -98,7 +98,35 @@ func (i *Indexer) healthzHandler() http.HandlerFunc {
 }
 
 func (i *Indexer) Check(ctx context.Context, in *pbhealth.HealthCheckRequest) (*pbhealth.HealthCheckResponse, error) {
+	return &pbhealth.HealthCheckResponse{
+		Status: i.healthStatus(),
+	}, nil
+}
 
+func (i *Indexer) Watch(req *pbhealth.HealthCheckRequest, stream pbhealth.Health_WatchServer) error {
+	currentStatus := pbhealth.HealthCheckResponse_SERVICE_UNKNOWN
+	waitTime := 0 * time.Second
+
+	for {
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case <-time.After(waitTime):
+			newStatus := i.healthStatus()
+			waitTime = 5 * time.Second
+
+			if newStatus != currentStatus {
+				currentStatus = newStatus
+
+				if err := stream.Send(&pbhealth.HealthCheckResponse{Status: currentStatus}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+}
+
+func (i *Indexer) healthStatus() pbhealth.HealthCheckResponse_ServingStatus {
 	h := i.healthReport()
 
 	status := pbhealth.HealthCheckResponse_SERVING
@@ -106,7 +134,5 @@ func (i *Indexer) Check(ctx context.Context, in *pbhealth.HealthCheckRequest) (*
 		status = pbhealth.HealthCheckResponse_NOT_SERVING
 	}
 
-	return &pbhealth.HealthCheckResponse{
-		Status: status,
-	}, nil
+	return status
 }

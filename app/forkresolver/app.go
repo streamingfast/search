@@ -21,15 +21,15 @@ import (
 
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/dgrpc"
-	"github.com/streamingfast/dstore"
-	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
-	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/dmesh"
 	dmeshClient "github.com/streamingfast/dmesh/client"
+	"github.com/streamingfast/dstore"
 	"github.com/streamingfast/search"
 	"github.com/streamingfast/search/forkresolver"
 	"github.com/streamingfast/search/metrics"
+	"github.com/streamingfast/shutter"
 	"go.uber.org/zap"
+	pbhealth "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 type Config struct {

@@ -23,17 +23,17 @@ import (
 
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/dgrpc"
-	"github.com/streamingfast/dstore"
-	pbblockmeta "github.com/streamingfast/pbgo/sf/blockmeta/v1"
-	pbhealth "github.com/streamingfast/pbgo/grpc/health/v1"
-	"github.com/streamingfast/shutter"
 	"github.com/streamingfast/dmesh"
 	dmeshClient "github.com/streamingfast/dmesh/client"
+	"github.com/streamingfast/dstore"
+	pbblockmeta "github.com/streamingfast/pbgo/sf/blockmeta/v1"
 	"github.com/streamingfast/search"
 	livebackend "github.com/streamingfast/search/live"
 	"github.com/streamingfast/search/metrics"
+	"github.com/streamingfast/shutter"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
+	pbhealth "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 )
 
@@ -123,10 +123,12 @@ func (a *App) Run() error {
 	lb := livebackend.New(a.modules.Dmesh, searchPeer, a.config.HeadDelayTolerance, a.config.ShutdownDelay)
 
 	zlog.Info("setting up blockmeta")
-	blockMetaClient, err := pbblockmeta.NewClient(a.config.BlockmetaAddr)
+	conn, err := dgrpc.NewInternalClient(a.config.BlockmetaAddr)
 	if err != nil {
 		return fmt.Errorf("new block meta client: %w", err)
 	}
+
+	blockMetaClient := pbblockmeta.NewClient(conn)
 
 	tracker := a.modules.Tracker.Clone()
 	tracker.SetNearBlocksCount(int64(a.config.StartBlockDriftTolerance))
