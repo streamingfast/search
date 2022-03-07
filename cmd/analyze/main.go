@@ -10,25 +10,23 @@ import (
 	"strconv"
 
 	"github.com/abourget/viperbind"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/derr"
 	"github.com/streamingfast/logging"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/streamingfast/search"
 	_ "go.uber.org/automaxprocs"
 	"go.uber.org/zap"
 )
 
-var zlog *zap.Logger
+var zlog, _ = logging.PackageLogger("search.analyze", "github.com/streamingfast/search/cmd/analyze")
 
 var analyzeCmd = &cobra.Command{Use: "analyze", Short: "Print stats about a single index", RunE: analyzeRunE, Args: cobra.ExactArgs(1)}
 
 func init() {
 	analyzeCmd.PersistentFlags().IntP("shard-size", "s", 0, "Shard size to check integrity for")
 	analyzeCmd.PersistentFlags().Int("protocol-first-block", 0, "Protocol's lowest block number")
-	logging.Register("github.com/streamingfast/search/cmd/analyze", &zlog)
-	logging.Set(logging.MustCreateLoggerWithServiceName("search-analyze"))
 }
 
 func main() {

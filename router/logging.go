@@ -16,11 +16,6 @@ package router
 
 import (
 	"github.com/streamingfast/logging"
-	"go.uber.org/zap"
 )
 
-var zlog *zap.Logger
-
-func init() {
-	logging.Register("github.com/streamingfast/search/router", &zlog)
-}
+var zlog, _ = logging.PackageLogger("search.router", "github.com/streamingfast/search/router")

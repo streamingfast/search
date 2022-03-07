@@ -3,7 +3,7 @@ module github.com/streamingfast/search
 go 1.16
 
 require (
-	contrib.go.opencensus.io/exporter/stackdriver v0.13.8
+	contrib.go.opencensus.io/exporter/stackdriver v0.13.10
 	github.com/RoaringBitmap/roaring v0.9.4
 	github.com/abourget/llerrgroup v0.2.0
 	github.com/abourget/viperbind v0.1.0
@@ -21,8 +21,8 @@ require (
 	github.com/streamingfast/dmesh v0.0.0-20220301163726-9fdd154b47a3
 	github.com/streamingfast/dmetrics v0.0.0-20210811180524-8494aeb34447
 	github.com/streamingfast/dstore v0.1.1-0.20220203133825-30eb2f9c5cd3
-	github.com/streamingfast/dtracing v0.0.0-20220301163030-15ce3f71dd1c // indirect
-	github.com/streamingfast/logging v0.0.0-20220222131651-12c3943aac2e
+	github.com/streamingfast/dtracing v0.0.0-20220305214756-b5c0e8699839 // indirect
+	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
 	github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a
 	github.com/streamingfast/shutter v1.5.0
 	github.com/stretchr/testify v1.7.0

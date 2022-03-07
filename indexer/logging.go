@@ -16,12 +16,6 @@ package indexer
 
 import (
 	"github.com/streamingfast/logging"
-	"go.uber.org/zap"
 )
 
-var traceEnabled = logging.IsTraceEnabled("search", "github.com/streamingfast/search/indexer")
-var zlog *zap.Logger
-
-func init() {
-	logging.Register("github.com/streamingfast/search/indexer", &zlog)
-}
+var zlog, tracer = logging.PackageLogger("search.indexer", "github.com/streamingfast/search/indexer")

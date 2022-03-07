@@ -16,11 +16,6 @@ package indexer
 
 import (
 	"github.com/streamingfast/logging"
-	"go.uber.org/zap"
 )
 
-var zlog *zap.Logger
-
-func init() {
-	logging.Register("github.com/streamingfast/search/app/indexer", &zlog)
-}
+var zlog, _ = logging.PackageLogger("search.indexer", "github.com/streamingfast/search/app/indexer")

@@ -25,6 +25,7 @@ import (
 	stackdriverPropagation "contrib.go.opencensus.io/exporter/stackdriver/propagation"
 
 	"github.com/streamingfast/derr"
+	"github.com/streamingfast/dtracing"
 	"github.com/streamingfast/logging"
 	"go.opencensus.io/plugin/ochttp"
 	"go.uber.org/zap"
@@ -39,11 +40,7 @@ func openCensusMiddleware(next http.Handler) http.Handler {
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {
-	return &logging.Handler{
-		Next:        next,
-		Propagation: &stackdriverPropagation.HTTPFormat{},
-		RootLogger:  zlog,
-	}
+	return dtracing.NewAddTraceIDAwareLoggerMiddleware(next, zlog, &stackdriverPropagation.HTTPFormat{})
 }
 
 func trackingMiddleware(next http.Handler) http.Handler {

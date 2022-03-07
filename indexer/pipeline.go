@@ -378,7 +378,7 @@ func (p *Pipeline) writeIrreversibleBatch(docsList []*document.Document, blockNu
 	p.writable.Lock.Lock()
 	defer p.writable.Lock.Unlock()
 
-	if traceEnabled {
+	if tracer.Enabled() {
 		zlog.Debug("indexing mapped documents", zap.Int("doc_count", len(docsList)))
 	}
 

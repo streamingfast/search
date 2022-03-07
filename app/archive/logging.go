@@ -16,11 +16,6 @@ package archive
 
 import (
 	"github.com/streamingfast/logging"
-	"go.uber.org/zap"
 )
 
-var zlog *zap.Logger
-
-func init() {
-	logging.Register("github.com/streamingfast/search/app/archive", &zlog)
-}
+var zlog, _ = logging.PackageLogger("search.archive", "github.com/streamingfast/search/app/archive")

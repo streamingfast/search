@@ -16,11 +16,6 @@ package forkresolver
 
 import (
 	"github.com/streamingfast/logging"
-	"go.uber.org/zap"
 )
 
-var zlog *zap.Logger
-
-func init() {
-	logging.Register("github.com/streamingfast/search/app/forkresolver", &zlog)
-}
+var zlog, _ = logging.PackageLogger("search.forkresolver", "github.com/streamingfast/search/app/forkresolver")
