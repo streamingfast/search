@@ -21,16 +21,16 @@ require (
 	github.com/streamingfast/dmesh v0.0.0-20220301163726-9fdd154b47a3
 	github.com/streamingfast/dmetrics v0.0.0-20210811180524-8494aeb34447
 	github.com/streamingfast/dstore v0.1.1-0.20220203133825-30eb2f9c5cd3
-	github.com/streamingfast/dtracing v0.0.0-20220305214756-b5c0e8699839 // indirect
+	github.com/streamingfast/dtracing v0.0.0-20220305214756-b5c0e8699839
 	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
 	github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a
 	github.com/streamingfast/shutter v1.5.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d // indirect
-	go.opencensus.io v0.23.0
+	go.opencensus.io v0.24.0
 	go.uber.org/atomic v1.9.0
 	go.uber.org/automaxprocs v1.3.0
 	go.uber.org/zap v1.21.0
 	google.golang.org/appengine v1.6.7
-	google.golang.org/grpc v1.44.0
+	google.golang.org/grpc v1.53.0
 )
